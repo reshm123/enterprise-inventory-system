@@ -5,6 +5,7 @@ import supplierRoutes from "./routes/supplier.routes.js";
 import warehouseRoutes from "./routes/warehouse.routes.js";
 import inventoryRoutes from "./routes/inventory.routes.js";
 import stockMovementRoutes from "./routes/stockMovement.routes.js";
+import purchaseOrderRoutes from "./routes/purchaseOrder.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -24,6 +25,7 @@ app.use("/api/supplier", supplierRoutes);
 app.use("/api/warehouse", warehouseRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/stock-movements", stockMovementRoutes);
+app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use(errorHandler);
 
 export default app;

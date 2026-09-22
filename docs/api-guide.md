@@ -529,3 +529,232 @@ Authorization errors use HTTP `403`. Common domain errors include:
 `GET /api/inventory/low-stock` reports inventory.  
 `POST /api/inventory/adjust` changes inventory.  
 `PATCH /api/inventory/:id` changes inventory fields and keeps `availableQuantity` consistent.
+
+## 12. Purchase Order API
+
+Base path: `/api/purchase-orders`  
+Authentication: required for every endpoint.
+
+Purchase orders contain a supplier, receiving warehouse, one or more product items, total amount, delivery date, workflow status, and approval details.
+
+### Purchase order statuses
+
+```text
+Draft -> Pending Approval -> Approved -> Partially Received -> Fully Received -> Closed
+```
+
+An order can also be cancelled before it is fully received or closed.
+
+Rules enforced by the backend:
+
+- Only `Draft` orders can be edited.
+- Only `Draft` orders can be submitted for approval.
+- Only `Pending Approval` orders can be approved.
+- The creator cannot approve their own purchase order.
+- Only `Approved` and `Partially Received` orders can receive goods.
+- Received quantity cannot exceed ordered quantity.
+- Only `Fully Received` orders can be closed.
+
+### Create purchase order
+
+```http
+POST /api/purchase-orders
+```
+
+Allowed roles: `Admin`, `Procurement Manager`.
+
+```json
+{
+  "poNumber": "PO-1001",
+  "supplierId": "SUPPLIER_ID",
+  "warehouseId": "WAREHOUSE_ID",
+  "expectedDeliveryDate": "2026-10-15",
+  "items": [
+    {
+      "productId": "PRODUCT_ID",
+      "quantity": 500,
+      "unitPrice": 45000
+    }
+  ]
+}
+```
+
+The backend calculates `totalAmount` and initializes the order with `Draft` status.
+
+Example curl:
+
+```bash
+curl -X POST http://localhost:5000/api/purchase-orders \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "poNumber": "PO-1001",
+    "supplierId": "SUPPLIER_ID",
+    "warehouseId": "WAREHOUSE_ID",
+    "expectedDeliveryDate": "2026-10-15",
+    "items": [
+      {
+        "productId": "PRODUCT_ID",
+        "quantity": 500,
+        "unitPrice": 45000
+      }
+    ]
+  }'
+```
+
+### List purchase orders
+
+```http
+GET /api/purchase-orders?page=1&limit=20&status=Draft&supplierId=SUPPLIER_ID&warehouseId=WAREHOUSE_ID
+```
+
+Allowed roles: all five roles.
+
+Supported query parameters:
+
+- `page`, `limit`: database-level pagination.
+- `status`: filter by workflow status.
+- `supplierId`: filter by supplier.
+- `warehouseId`: filter by receiving warehouse.
+
+### Get one purchase order
+
+```http
+GET /api/purchase-orders/:id
+```
+
+Allowed roles: all five roles.
+
+The response includes populated supplier, warehouse, creator, approver, and product information.
+
+### Update a draft purchase order
+
+```http
+PATCH /api/purchase-orders/:id
+```
+
+Allowed roles: `Admin`, `Procurement Manager`.
+
+Only draft orders can be updated. For example:
+
+```json
+{
+  "expectedDeliveryDate": "2026-10-20"
+}
+```
+
+Attempting to update an order in `Pending Approval`, `Approved`, `Partially Received`, `Fully Received`, `Cancelled`, or `Closed` returns `409 INVALID_PO_STATE`.
+
+### Submit for approval
+
+```http
+POST /api/purchase-orders/:id/submit
+```
+
+Allowed roles: `Admin`, `Procurement Manager`.
+
+Transition:
+
+```text
+Draft -> Pending Approval
+```
+
+### Approve purchase order
+
+```http
+POST /api/purchase-orders/:id/approve
+```
+
+Allowed roles: `Admin`, `Procurement Manager`.
+
+Optional request body:
+
+```json
+{
+  "comment": "Approved for procurement"
+}
+```
+
+The approver must be different from the user in `createdBy`. On success, the backend stores:
+
+```json
+{
+  "status": "Approved",
+  "approvedBy": "APPROVER_USER_ID",
+  "approvedAt": "2026-09-22T10:00:00.000Z",
+  "approvalComment": "Approved for procurement"
+}
+```
+
+Example curl:
+
+```bash
+curl -X POST http://localhost:5000/api/purchase-orders/PO_ID/approve \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer APPROVER_JWT_TOKEN" \
+  -d '{"comment":"Approved for procurement"}'
+```
+
+### Receive goods
+
+```http
+POST /api/purchase-orders/:id/receive
+```
+
+Allowed roles: `Admin`, `Warehouse Manager`, `Warehouse Staff`.
+
+```json
+{
+  "items": [
+    {
+      "productId": "PRODUCT_ID",
+      "quantity": 300
+    }
+  ]
+}
+```
+
+Receiving updates the purchase order item quantities, inventory, and stock movement records in one MongoDB transaction.
+
+Example:
+
+```text
+Ordered: 500
+First receipt: 300
+Received: 300
+Pending: 200
+Status: Partially Received
+```
+
+A later receipt of 200 changes the order to `Fully Received`. A receipt that would make received quantity greater than ordered quantity is rejected with `400 OVER_RECEIVING_NOT_ALLOWED`.
+
+### Cancel purchase order
+
+```http
+POST /api/purchase-orders/:id/cancel
+```
+
+Allowed roles: `Admin`, `Procurement Manager`.
+
+Orders in `Fully Received`, `Closed`, or `Cancelled` status cannot be cancelled.
+
+### Close purchase order
+
+```http
+POST /api/purchase-orders/:id/close
+```
+
+Allowed roles: `Admin`, `Procurement Manager`.
+
+Only a `Fully Received` order can be closed.
+
+### Common purchase-order errors
+
+- `PURCHASE_ORDER_NOT_FOUND`: purchase order does not exist.
+- `PRODUCT_NOT_FOUND`: an item references a missing product.
+- `SUPPLIER_NOT_FOUND`: supplier does not exist.
+- `WAREHOUSE_NOT_FOUND`: warehouse does not exist.
+- `DUPLICATE_PO_NUMBER`: PO number is already used.
+- `INVALID_PO_STATE`: operation is not allowed in the current status.
+- `OVER_RECEIVING_NOT_ALLOWED`: receipt exceeds ordered quantity.
+- `SEPARATION_OF_DUTIES_REQUIRED`: creator attempted to approve their own PO.
