@@ -148,12 +148,42 @@ The following movements are created automatically:
 
 Inventory updates and movement creation run together in a MongoDB transaction when MongoDB is configured as a replica set. In local development with standalone MongoDB, the service uses its development fallback and still performs conditional stock checks to prevent negative inventory.
 
-## 7. Implementation Files
+## 7. Concurrency Handling
+
+Source stock is protected at the database write boundary. During transfer approval, the service does not read `availableQuantity` and then update it separately. It performs one atomic `findOneAndUpdate` with this condition:
+
+```js
+{
+  productId: item.productId,
+  warehouseId: transfer.fromWarehouse,
+  availableQuantity: { $gte: item.quantity }
+}
+```
+
+The same atomic update reserves stock and decreases availability:
+
+```js
+{
+  $inc: {
+    reservedQuantity: item.quantity,
+    availableQuantity: -item.quantity,
+    version: 1
+  }
+}
+```
+
+For example, with `availableQuantity = 100`, concurrent requests for `80` and `50` cannot both match the condition. One request atomically reserves its quantity; the other update returns no document and fails with `INSUFFICIENT_STOCK`. The result is either `20` or `50` available stock, never `-30`.
+
+When MongoDB runs as a replica set, approval, transfer state changes, and related writes execute inside a transaction. The conditional update remains the protection against overselling at the inventory-document level. The standalone development fallback retains the atomic conditional update, but a replica set is recommended for all-or-nothing multi-document behavior.
+
+## 8. Implementation Files
 
 | Layer | File |
 |---|---|
 | Model | [stockTransfer.model.js](../models/stockTransfer.model.js) |
 | Service | [stockTransfer.service.js](../services/stockTransfer.service.js) |
+| Inventory concurrency control | [stockTransfer.service.js](../services/stockTransfer.service.js), `approveStockTransferService` |
+| Inventory version field and indexes | [inventory.model.js](../models/inventory.model.js) |
 | Controller | [stockTransfer.controller.js](../controllers/stockTransfer.controller.js) |
 | Routes | [stockTransfer.routes.js](../routes/stockTransfer.routes.js) |
 | App registration | [app.js](../app.js) |

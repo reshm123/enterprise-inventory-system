@@ -4,6 +4,7 @@ import Supplier from "../models/Supplier.js";
 import Warehouse from "../models/warehouse.js";
 import Inventory from "../models/inventory.model.js";
 import StockMovement from "../models/stockMovement.model.js";
+import AuditLog from "../models/auditLog.model.js";
 import PurchaseOrder from "../models/purchaseOrder.model.js";
 import {
   createPurchaseOrder,
@@ -173,8 +174,8 @@ export const receivePurchaseOrderService = async (id, receiptItems, user) => {
   const session = await mongoose.startSession();
   try {
     let result;
-    await session.withTransaction(async () => {
-      const purchaseOrder = await PurchaseOrder.findById(id).session(session);
+    const receive = async (activeSession) => {
+      const purchaseOrder = await PurchaseOrder.findById(id).session(activeSession);
       if (!purchaseOrder) fail("Purchase order not found", 404, "PURCHASE_ORDER_NOT_FOUND");
       if (!["Approved", "Partially Received"].includes(purchaseOrder.status)) fail("Purchase order is not receivable in its current state", 409, "INVALID_PO_STATE");
 
@@ -189,7 +190,7 @@ export const receivePurchaseOrderService = async (id, receiptItems, user) => {
 
         item.receivedQuantity += quantity;
         item.pendingQuantity = item.quantity - item.receivedQuantity;
-        const product = await Product.findById(receipt.productId).select("reorderLevel").session(session);
+        const product = await Product.findById(receipt.productId).select("reorderLevel").session(activeSession);
         if (!product) fail(`Product ${receipt.productId} not found`, 404, "PRODUCT_NOT_FOUND");
         await Inventory.findOneAndUpdate(
           { productId: receipt.productId, warehouseId: purchaseOrder.warehouseId },
@@ -197,7 +198,7 @@ export const receivePurchaseOrderService = async (id, receiptItems, user) => {
             $inc: { quantity, availableQuantity: quantity },
             $setOnInsert: { reservedQuantity: 0, reorderLevel: product.reorderLevel }
           },
-          { upsert: true, new: true, session, setDefaultsOnInsert: true }
+          { upsert: true, new: true, session: activeSession, setDefaultsOnInsert: true }
         );
         movements.push({
           productId: receipt.productId,
@@ -212,10 +213,31 @@ export const receivePurchaseOrderService = async (id, receiptItems, user) => {
 
       if (purchaseOrder.items.every((item) => item.pendingQuantity === 0)) purchaseOrder.status = "Fully Received";
       else purchaseOrder.status = "Partially Received";
-      await purchaseOrder.save({ session });
-      await StockMovement.insertMany(movements, { session });
+      await purchaseOrder.save({ session: activeSession });
+      await StockMovement.insertMany(movements, { session: activeSession });
+      await AuditLog.create(
+        [{
+          action: "PURCHASE_ORDER_RECEIVED",
+          entityType: "PurchaseOrder",
+          entityId: purchaseOrder._id,
+          performedBy: user.id,
+          details: {
+            poNumber: purchaseOrder.poNumber,
+            warehouseId: purchaseOrder.warehouseId,
+            items: receiptItems.map(({ productId, quantity }) => ({ productId, quantity })),
+            status: purchaseOrder.status
+          }
+        }],
+        { session: activeSession }
+      );
       result = purchaseOrder;
-    });
+    };
+
+    const hello = await mongoose.connection.db.admin().command({ hello: 1 });
+    const supportsTransactions = Boolean(hello.setName || hello.msg === "isdbgrid");
+    if (supportsTransactions) await session.withTransaction(() => receive(session));
+    else if (process.env.MONGODB_ALLOW_STANDALONE === "true") await receive(null);
+    else throw new Error("MongoDB transactions require a replica set. Configure rs0 or set MONGODB_ALLOW_STANDALONE=true for local development.");
     return result;
   } finally {
     await session.endSession();

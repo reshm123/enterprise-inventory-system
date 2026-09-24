@@ -110,15 +110,19 @@ GET /api/inventory
 
 ### Query Parameters
 
-- page: page number (default 1)
-- limit: number of items per page (default 20)
-- search: product name or SKU
-- warehouse: warehouse ID
-- category: product category
-- lowStock: true/false
-- outOfStock: true/false
-- sortBy: quantity, availableQuantity, updatedAt, productName
-- sortOrder: asc or desc
+All parameters are optional. Filtering, sorting, and pagination are performed by the API query against MongoDB before records are returned.
+
+- `page`: 1-based page number (default `1`)
+- `limit`: number of records per page (default `20`)
+- `search`: case-insensitive match against the product name or SKU
+- `warehouse`: warehouse ObjectId
+- `category`: exact product category match
+- `lowStock`: when `true`, include records where `availableQuantity <= reorderLevel`
+- `outOfStock`: when `true`, include records where `availableQuantity = 0`
+- `sortBy`: `updatedAt` (default), `quantity`, `availableQuantity`, `productName`, or `reorderLevel`
+- `sortOrder`: `asc` or `desc` (default `desc`)
+
+When both `lowStock=true` and `outOfStock=true` are supplied, records matching either stock condition are returned.
 
 ### Example Curl
 
@@ -136,6 +140,13 @@ curl -X GET "http://localhost:5000/api/inventory?warehouse=64d9f7c9b2d4e21f8e7a5
 curl -X GET "http://localhost:5000/api/inventory?search=laptop&page=1&limit=20" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
+
+```bash
+curl -X GET "http://localhost:5000/api/inventory?page=1&limit=20&search=laptop&warehouse=64d9f7c9b2d4e21f8e7a5678&category=Electronics&lowStock=true&sortBy=availableQuantity&sortOrder=asc" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+Pagination is applied in the database using the requested page and limit. The response includes the total matching record count and calculated total page count.
 
 ### Success Response
 

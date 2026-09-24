@@ -47,7 +47,7 @@ The API recognizes these roles:
 
 If a route does not list a role, check the route implementation before exposing it to a client. A missing or invalid token returns `401`; a user without the required role returns `403`.
 
-## 3. Authentication API
+## 4. Authentication API
 
 ### Register
 
@@ -98,7 +98,7 @@ POST /api/auth/logout
 
 Requires authentication. Invalidates the current token version for the user.
 
-## 4. Product API
+## 5. Product API
 
 Base path: `/api/product`  
 Authentication: required for every endpoint.
@@ -159,7 +159,7 @@ Send any product fields that need changing. A changed SKU must remain unique.
 DELETE /api/product/:id
 ```
 
-## 5. Warehouse API
+## 6. Warehouse API
 
 Base path: `/api/warehouse`  
 Authentication: required for every endpoint.
@@ -222,7 +222,7 @@ Use `ACTIVE` or `INACTIVE` as the status value expected by the warehouse service
 DELETE /api/warehouse/:id
 ```
 
-## 6. Supplier API
+## 7. Supplier API
 
 Base path: `/api/supplier`  
 Authentication: required for every endpoint.
@@ -279,7 +279,7 @@ DELETE /api/supplier/:id
 
 Allowed roles: `Admin`, `Procurement Manager`.
 
-## 7. Inventory API
+## 8. Inventory API
 
 Base path: `/api/inventory`  
 Authentication: required for every endpoint.
@@ -328,14 +328,17 @@ Allowed roles: all five roles.
 
 Optional query parameters:
 
-- `page`, `limit`: pagination.
-- `warehouse`: warehouse ID.
-- `search`: product name or SKU.
-- `category`: product category.
+- `page`: 1-based page number; defaults to `1`.
+- `limit`: records per page; defaults to `20`.
+- `warehouse`: warehouse ObjectId, not the warehouse code.
+- `search`: case-insensitive product name or SKU search.
+- `category`: exact product category match.
 - `lowStock=true`: available quantity is less than or equal to reorder level.
 - `outOfStock=true`: available quantity is zero.
 - `sortBy`: `updatedAt`, `quantity`, `availableQuantity`, `productName`, or `reorderLevel`.
-- `sortOrder`: `asc` or `desc`.
+- `sortOrder`: `asc` or `desc`; defaults to `desc`.
+
+The search, filters, sort, and pagination are applied server-side in the database. The response contains `items`, `total`, `page`, `limit`, and `totalPages`. If both `lowStock=true` and `outOfStock=true` are supplied, records matching either condition are returned.
 
 ### Get inventory by ID
 
@@ -384,7 +387,7 @@ Example: `availableQuantity = 8` and `reorderLevel = 10` means `8 <= 10`, so the
 
 This endpoint does not add, remove, reserve, or update stock.
 
-## 8. Stock Movement API
+## 9. Stock Movement API
 
 Stock movements are the immutable audit trail for inventory changes. They are created internally by operations such as initial stock creation and stock adjustment. There is intentionally no public create endpoint, because directly creating a movement without changing inventory would make the audit trail inaccurate.
 
@@ -480,7 +483,7 @@ availableQuantity = 50 - 40 = 10
 
 A request with `reservedQuantity = 140` while `quantity = 50` is rejected with HTTP `400` because reserved stock cannot exceed total stock.
 
-## 8. Low-Stock Examples
+## 10. Low-Stock Examples
 
 | Quantity | Reserved | Available | Reorder level | Low stock? |
 |---:|---:|---:|---:|:---:|
@@ -489,7 +492,7 @@ A request with `reservedQuantity = 140` while `quantity = 50` is rejected with H
 | 50 | 50 | 0 | 10 | Yes |
 | 50 | 140 | Invalid | 15 | Request rejected |
 
-## 9. Error Responses
+## 11. Error Responses
 
 Authentication errors:
 
@@ -514,7 +517,7 @@ Authorization errors use HTTP `403`. Common domain errors include:
 - `SUPPLIER_NOT_FOUND`
 - `INVALID_SUPPLIER_ID`
 
-## 10. Typical Workflow
+## 12. Typical Workflow
 
 1. Register a user and log in.
 2. Create products and warehouses.
@@ -524,13 +527,13 @@ Authorization errors use HTTP `403`. Common domain errors include:
 6. Update `reorderLevel` when the business threshold changes.
 7. Keep `reservedQuantity` less than or equal to `quantity`.
 
-## 11. Important Distinction
+## 13. Important Distinction
 
 `GET /api/inventory/low-stock` reports inventory.  
 `POST /api/inventory/adjust` changes inventory.  
 `PATCH /api/inventory/:id` changes inventory fields and keeps `availableQuantity` consistent.
 
-## 12. Purchase Order API
+## 14. Purchase Order API
 
 Base path: `/api/purchase-orders`  
 Authentication: required for every endpoint.

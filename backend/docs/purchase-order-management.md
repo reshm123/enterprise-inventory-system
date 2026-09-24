@@ -450,8 +450,9 @@ The service performs these steps inside a MongoDB session transaction:
 9. Increase inventory quantity and available quantity.
 10. Create a `PURCHASE_RECEIPT` stock movement.
 11. Set the PO status to `Partially Received` or `Fully Received`.
-12. Save the PO and stock movements.
-13. Commit all changes together.
+12. Save the PO and its embedded purchase-order item updates.
+13. Create the purchase receipt audit log.
+14. Commit all changes together.
 
 If any step throws an error, MongoDB rolls back the transaction. This prevents a partial result such as inventory being updated while the purchase order remains unchanged.
 
@@ -928,6 +929,6 @@ This separation makes the module easier to test and reduces the risk that a busi
 - Receipt transactions require MongoDB transaction support, normally provided by a replica set or MongoDB Atlas.
 - The PO model uses `Supplier`, `Warehouse`, `Product`, and `user` references; those model names must remain consistent with the existing application.
 - The stock movement is written as `PURCHASE_RECEIPT` for every receipt operation.
-- The current receiving transaction updates inventory atomically with the PO and stock movements.
-- The current module does not include a separate audit-log collection; stock movements provide the receipt history, while a future audit-log module can record old and new PO values.
+- The receiving transaction updates the PO and its items, inventory, stock movements, and `AuditLog` record atomically.
+- The `AuditLog` record stores the receipt action, purchase order identity, operator, warehouse, received items, and resulting PO status.
 - The frontend should use the API status and item quantities returned by the backend instead of calculating workflow state locally.
