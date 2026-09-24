@@ -190,11 +190,12 @@ export const receivePurchaseOrderService = async (id, receiptItems, user) => {
         item.receivedQuantity += quantity;
         item.pendingQuantity = item.quantity - item.receivedQuantity;
         const product = await Product.findById(receipt.productId).select("reorderLevel").session(session);
+        if (!product) fail(`Product ${receipt.productId} not found`, 404, "PRODUCT_NOT_FOUND");
         await Inventory.findOneAndUpdate(
           { productId: receipt.productId, warehouseId: purchaseOrder.warehouseId },
           {
             $inc: { quantity, availableQuantity: quantity },
-            $setOnInsert: { reservedQuantity: 0, reorderLevel: product?.reorderLevel || 0 }
+            $setOnInsert: { reservedQuantity: 0, reorderLevel: product.reorderLevel }
           },
           { upsert: true, new: true, session, setDefaultsOnInsert: true }
         );
