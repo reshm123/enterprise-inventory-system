@@ -7,6 +7,7 @@ import inventoryRoutes from "./routes/inventory.routes.js";
 import stockMovementRoutes from "./routes/stockMovement.routes.js";
 import purchaseOrderRoutes from "./routes/purchaseOrder.routes.js";
 import stockTransferRoutes from "./routes/stockTransfer.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -28,6 +29,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/stock-movements", stockMovementRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/stock-transfers", stockTransferRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use(errorHandler);
 
 export default app;
