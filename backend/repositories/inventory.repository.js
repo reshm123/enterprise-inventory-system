@@ -2,16 +2,21 @@ import mongoose from "mongoose";
 import Inventory from "../models/inventory.model.js";
 import StockMovement from "../models/stockMovement.model.js";
 
-export const createInventoryEntry = async (data) => Inventory.create(data);
+export const createInventoryEntry = async (data, session) => {
+  const [inventory] = await Inventory.create([data], session ? { session } : {});
+  return inventory;
+};
 
-export const findInventoryByProductAndWarehouse = async (productId, warehouseId) =>
-  Inventory.findOne({ productId, warehouseId });
+export const findInventoryByProductAndWarehouse = async (productId, warehouseId, session) => {
+  const query = Inventory.findOne({ productId, warehouseId });
+  return session ? query.session(session) : query;
+};
 
 export const findInventoryById = async (inventoryId) =>
   Inventory.findById(inventoryId).populate("productId", "sku name category").populate("warehouseId", "name code location");
 
 export const updateInventoryEntry = async (inventoryId, updateData) =>
-  Inventory.findByIdAndUpdate(inventoryId, updateData, { new: true });
+  Inventory.findByIdAndUpdate(inventoryId, updateData, { new: true, runValidators: true });
 
 export const listInventoryRecords = async ({ search, warehouse, category, lowStock, outOfStock, sortBy = "updatedAt", sortOrder = "desc", page = 1, limit = 20 }) => {
   const query = {};
@@ -72,7 +77,10 @@ export const listInventoryRecords = async ({ search, warehouse, category, lowSto
   return { items, total };
 };
 
-export const createStockMovementEntry = async (data) => StockMovement.create(data);
+export const createStockMovementEntry = async (data, session) => {
+  const [movement] = await StockMovement.create([data], session ? { session } : {});
+  return movement;
+};
 
 export const getLowStockRecords = async () => {
   return Inventory.find({ $expr: { $lte: ["$availableQuantity", "$reorderLevel"] } })

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { findProductById } from "../repositories/product.repository.js";
 import { findWarehouseById } from "../repositories/warehouseRepository.js";
 import {
@@ -9,8 +10,10 @@ import {
   findInventoryById,
   updateInventoryEntry
 } from "../repositories/inventory.repository.js";
+import AuditLog from "../models/auditLog.model.js";
+import Inventory from "../models/inventory.model.js";
 
-export const createInventoryService = async ({ productId, warehouseId, quantity = 0, reorderLevel = 0 }) => {
+export const createInventoryService = async ({ productId, warehouseId, quantity = 0, reorderLevel = 0 }, user) => {
   if (!productId || !warehouseId) {
     const error = new Error("Product and warehouse are required");
     error.statusCode = 400;
@@ -34,34 +37,57 @@ export const createInventoryService = async ({ productId, warehouseId, quantity 
     throw error;
   }
 
-  const existing = await findInventoryByProductAndWarehouse(productId, warehouseId);
-  if (existing) {
-    const error = new Error("Inventory already exists for this product and warehouse");
-    error.statusCode = 409;
-    error.code = "INVENTORY_ALREADY_EXISTS";
+  const initialQuantity = Number(quantity);
+  if (!Number.isInteger(initialQuantity) || initialQuantity < 0) {
+    const error = new Error("Initial quantity must be a non-negative integer");
+    error.statusCode = 400;
+    error.code = "VALIDATION_ERROR";
     throw error;
   }
 
-  const inventory = await createInventoryEntry({
-    productId,
-    warehouseId,
-    quantity: Number(quantity),
-    reservedQuantity: 0,
-    availableQuantity: Number(quantity),
-    reorderLevel: Number(reorderLevel)
-  });
+  const session = await mongoose.startSession();
+  try {
+    let inventory;
+    await session.withTransaction(async () => {
+      const existing = await findInventoryByProductAndWarehouse(productId, warehouseId, session);
+      if (existing) {
+        const error = new Error("Inventory already exists for this product and warehouse");
+        error.statusCode = 409;
+        error.code = "INVENTORY_ALREADY_EXISTS";
+        throw error;
+      }
 
-  await createStockMovementEntry({
-    productId,
-    warehouseId,
-    type: "PURCHASE_RECEIPT",
-    quantity: Number(quantity),
-    reference: "INITIAL_STOCK",
-    reason: "Initial inventory setup",
-    performedBy: warehouse.managerId || product._id
-  });
+      inventory = await createInventoryEntry({
+        productId,
+        warehouseId,
+        quantity: initialQuantity,
+        reservedQuantity: 0,
+        availableQuantity: initialQuantity,
+        reorderLevel: Number(reorderLevel)
+      }, session);
 
-  return inventory;
+      await createStockMovementEntry({
+        productId,
+        warehouseId,
+        type: "PURCHASE_RECEIPT",
+        quantity: initialQuantity,
+        reference: "INITIAL_STOCK",
+        reason: "Initial inventory setup",
+        performedBy: user.id
+      }, session);
+
+      await AuditLog.create([{
+        action: "INVENTORY_CREATED",
+        entityType: "Inventory",
+        entityId: inventory._id,
+        performedBy: user.id,
+        details: { oldQuantity: 0, newQuantity: initialQuantity, reason: "Initial inventory setup", reference: "INITIAL_STOCK" }
+      }], { session });
+    });
+    return inventory;
+  } finally {
+    await session.endSession();
+  }
 };
 
 export const getInventoryService = async (query = {}) => {
@@ -97,46 +123,70 @@ export const getLowStockInventoryService = async () => {
   };
 };
 
-export const adjustInventoryService = async ({ productId, warehouseId, quantity, reason = "Manual adjustment" }, user) => {
-  if (!productId || !warehouseId || typeof quantity !== "number") {
+export const adjustInventoryService = async ({ productId, warehouseId, quantity, reason }, user) => {
+  if (!productId || !warehouseId || !Number.isInteger(quantity) || quantity === 0 || !reason?.trim()) {
     const error = new Error("Product, warehouse and quantity are required");
     error.statusCode = 400;
     error.code = "VALIDATION_ERROR";
     throw error;
   }
 
-  const inventory = await findInventoryByProductAndWarehouse(productId, warehouseId);
-  if (!inventory) {
-    const error = new Error("Inventory not found for the selected product and warehouse");
-    error.statusCode = 404;
-    error.code = "INVENTORY_NOT_FOUND";
-    throw error;
+  const session = await mongoose.startSession();
+  try {
+    let updatedInventory;
+    await session.withTransaction(async () => {
+      const inventory = await findInventoryByProductAndWarehouse(productId, warehouseId, session);
+      if (!inventory) {
+        const error = new Error("Inventory not found for the selected product and warehouse");
+        error.statusCode = 404;
+        error.code = "INVENTORY_NOT_FOUND";
+        throw error;
+      }
+
+      const filter = { _id: inventory._id };
+      if (quantity < 0) {
+        filter.quantity = { $gte: -quantity };
+        filter.availableQuantity = { $gte: -quantity };
+      }
+      updatedInventory = await Inventory.findOneAndUpdate(
+        filter,
+        { $inc: { quantity, availableQuantity: quantity, version: 1 } },
+        { new: true, runValidators: true, session }
+      );
+      if (!updatedInventory) {
+        const error = new Error("Adjustment would reduce available inventory below zero");
+        error.statusCode = 400;
+        error.code = "INSUFFICIENT_STOCK";
+        throw error;
+      }
+
+      await createStockMovementEntry({
+        productId,
+        warehouseId,
+        type: "STOCK_ADJUSTMENT",
+        quantity,
+        reason: reason.trim(),
+        reference: "MANUAL_ADJUSTMENT",
+        performedBy: user.id
+      }, session);
+
+      await AuditLog.create([{
+        action: "STOCK_ADJUSTED",
+        entityType: "Inventory",
+        entityId: inventory._id,
+        performedBy: user.id,
+        details: {
+          oldQuantity: inventory.quantity,
+          newQuantity: updatedInventory.quantity,
+          reason: reason.trim(),
+          reference: "MANUAL_ADJUSTMENT"
+        }
+      }], { session });
+    });
+    return updatedInventory;
+  } finally {
+    await session.endSession();
   }
-
-  const nextQuantity = inventory.quantity + quantity;
-  if (nextQuantity < 0) {
-    const error = new Error("Adjustment would result in negative inventory");
-    error.statusCode = 400;
-    error.code = "INSUFFICIENT_STOCK";
-    throw error;
-  }
-
-  inventory.quantity = nextQuantity;
-  inventory.availableQuantity = Math.max(0, inventory.quantity - inventory.reservedQuantity);
-  inventory.version = (inventory.version || 0) + 1;
-  await inventory.save();
-
-  await createStockMovementEntry({
-    productId,
-    warehouseId,
-    type: "STOCK_ADJUSTMENT",
-    quantity,
-    reason,
-    reference: "MANUAL_ADJUSTMENT",
-    performedBy: user.id
-  });
-
-  return inventory;
 };
 
 export const getInventoryByIdService = async (inventoryId) => {
@@ -152,27 +202,20 @@ export const getInventoryByIdService = async (inventoryId) => {
 };
 
 export const updateInventoryEntryService = async (inventoryId, payload) => {
-  const inventory = await findInventoryById(inventoryId);
-  if (!inventory) {
+  if (Object.keys(payload).some((key) => key !== "reorderLevel") ||
+      !Number.isFinite(payload.reorderLevel) || payload.reorderLevel < 0) {
+    const error = new Error("Only a non-negative reorderLevel can be updated directly; use stock adjustment for quantity changes");
+    error.statusCode = 400;
+    error.code = "INVALID_INVENTORY_UPDATE";
+    throw error;
+  }
+
+  const next = await updateInventoryEntry(inventoryId, { reorderLevel: payload.reorderLevel });
+  if (!next) {
     const error = new Error("Inventory record not found");
     error.statusCode = 404;
     error.code = "INVENTORY_NOT_FOUND";
     throw error;
   }
-
-  const nextQuantity = payload.quantity ?? inventory.quantity;
-  const nextReservedQuantity = payload.reservedQuantity ?? inventory.reservedQuantity;
-
-  if (nextReservedQuantity > nextQuantity) {
-    const error = new Error("Reserved quantity cannot exceed total quantity");
-    error.statusCode = 400;
-    error.code = "INVALID_RESERVED_QUANTITY";
-    throw error;
-  }
-
-  const next = await updateInventoryEntry(inventoryId, {
-    ...payload,
-    availableQuantity: nextQuantity - nextReservedQuantity
-  });
   return next;
 };

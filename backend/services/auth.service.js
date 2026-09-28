@@ -3,7 +3,7 @@ import {hashedpassword , passwordcompare} from "../utils/password.js"
 import {genearetToken } from "../utils/jwt.js"
 
 export const registerUser=async({
-    name,email,password,role
+  name,email,password
 })=>{
     const normalizedemail=email.trim().toLowerCase()
     const existingeamil= await findUserByEmail(normalizedemail);
@@ -17,7 +17,7 @@ export const registerUser=async({
 
     const hashedPassword=await hashedpassword(password);
    const user= await createUser({
-    name,email:normalizedemail,password:hashedPassword,role
+    name,email:normalizedemail,password:hashedPassword,role:"Warehouse Staff"
 })
 return {
     id:user._id,

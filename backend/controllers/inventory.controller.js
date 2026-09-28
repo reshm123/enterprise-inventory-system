@@ -10,7 +10,7 @@ import { successResponse } from "../utils/response.js";
 
 export const createInventory = async (req, res, next) => {
   try {
-    const inventory = await createInventoryService(req.body);
+    const inventory = await createInventoryService(req.body, req.user);
     return successResponse(res, 201, "Inventory created successfully", inventory);
   } catch (error) {
     next(error);

@@ -17,12 +17,7 @@ const assertId = (value, field) => {
 };
 
 const runWithTransaction = async (session, operation) => {
-  try {
-    return await session.withTransaction(operation);
-  } catch (error) {
-    if (error.code !== 20 || process.env.NODE_ENV === "production") throw error;
-    return operation();
-  }
+  return session.withTransaction(operation);
 };
 
 const getTransfer = async (id, session) => {
