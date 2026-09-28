@@ -81,6 +81,18 @@ afterAll(async () => {
 });
 
 describe("Inventory management API", () => {
+  it("allows the local frontend origin through CORS preflight", async () => {
+    const response = await request(app)
+      .options("/api/auth/login")
+      .set("Origin", "http://localhost:5173")
+      .set("Access-Control-Request-Method", "POST")
+      .set("Access-Control-Request-Headers", "content-type");
+
+    expect(response.status).toBe(204);
+    expect(response.headers["access-control-allow-origin"]).toBe("http://localhost:5173");
+    expect(response.headers["access-control-allow-methods"]).toContain("POST");
+  });
+
   it("creates stock and lists inventory for a warehouse", async () => {
     const createRes = await request(app)
       .post("/api/inventory")

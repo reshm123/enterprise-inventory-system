@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import supplierRoutes from "./routes/supplier.routes.js";
@@ -11,6 +12,26 @@ import dashboardRoutes from "./routes/dashboard.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
+
+const allowedOrigins = new Set([
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  ...(process.env.CLIENT_URL || "").split(",").map((origin) => origin.trim()).filter(Boolean)
+]);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) {
+      return callback(null, true);
+    }
+
+    const error = new Error("Origin is not allowed by CORS");
+    error.statusCode = 403;
+    error.code = "CORS_ORIGIN_DENIED";
+    return callback(error);
+  },
+  credentials: true
+}));
 
 app.use(express.json());
 
