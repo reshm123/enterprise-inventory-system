@@ -11,6 +11,7 @@ import Dashboard from "./pages/dashboard/Dashboard";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import MainLayout from "./layouts/MainLayout";
+import Products from "./pages/products/Products";
 
 const App = () => {
   return (
@@ -42,12 +43,7 @@ const App = () => {
 
             {/* Future routes */}
 
-            <Route
-              path="/products"
-              element={
-                <h1>Products Coming Soon</h1>
-              }
-            />
+             <Route path="/products" element={<Products />} />
 
             <Route
               path="/inventory"
