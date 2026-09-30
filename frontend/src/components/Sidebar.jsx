@@ -38,7 +38,7 @@ const Sidebar = () => {
           Products
         </NavLink>
 
-        <NavLink to="/inventory">
+          <NavLink to="/inventory">
           Inventory
         </NavLink>
 
