@@ -4,6 +4,8 @@ import dashboardReducer from "./slices/dashboardSlice";
 import productReducer from "./slices/productSlice";
 import inventoryReducer from "./slices/inventorySlice";
 import supplierReducer from "./slices/supplierSlice";
+import warehouseReducer from "./slices/warehouseSlice";
+import purchaseOrderReducer from "./slices/purchaseOrderSlice";
 
 const store = configureStore({
   reducer: {
@@ -12,6 +14,8 @@ const store = configureStore({
     products: productReducer,
     inventory: inventoryReducer,
     suppliers: supplierReducer,
+    warehouses: warehouseReducer,
+    purchaseOrders: purchaseOrderReducer,
   },
 });
 

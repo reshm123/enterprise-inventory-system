@@ -30,14 +30,24 @@ const Suppliers = () => {
   } = useSelector((state) => state.suppliers);
 
   const [form, setForm] = useState(initialForm);
-
   const [editingId, setEditingId] = useState(null);
-
   const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
-    dispatch(fetchSuppliers());
-  }, [dispatch]);
+    const params = {};
+
+    if (search.trim()) {
+      params.search = search.trim();
+    }
+
+    if (statusFilter !== "all") {
+      params.status = statusFilter;
+    }
+
+    dispatch(fetchSuppliers(params));
+  }, [dispatch, search, statusFilter]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -166,6 +176,29 @@ const Suppliers = () => {
           {error}
         </div>
       )}
+
+      <div className="card">
+        <div className="filter-grid">
+          <div className="form-group">
+            <label>Search</label>
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search supplier name or email"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Status</label>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <option value="all">All</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
       {showForm && (
         <div className="card">

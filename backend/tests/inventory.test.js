@@ -225,6 +225,50 @@ describe("Inventory management API", () => {
     expect(await AuditLog.countDocuments({ entityId: purchaseOrder._id, action: "PURCHASE_ORDER_RECEIVED" })).toBe(2);
   });
 
+  it("requires a purchase order to be submitted before approval", async () => {
+    const approver = await User.create({
+      name: "Approval Manager",
+      email: "approver@inventory.test",
+      password: "Password123!",
+      role: "Procurement Manager",
+      status: "Active"
+    });
+
+    const supplier = await Supplier.create({
+      name: "Approval Supplier",
+      email: "approval-supplier@inventory.test",
+      phone: "+1 555 0199",
+      address: "2 Approval Road",
+      contactPerson: "Approval Contact"
+    });
+
+    const po = await PurchaseOrder.create({
+      poNumber: "PO-APPROVAL-1",
+      supplierId: supplier._id,
+      warehouseId: warehouseId,
+      items: [{ productId, quantity: 15, unitPrice: 100, receivedQuantity: 0, pendingQuantity: 15 }],
+      totalAmount: 1500,
+      status: "Draft",
+      createdBy: userId
+    });
+
+    const approverToken = `Bearer ${jwtSign({ id: approver._id.toString(), role: approver.role, tokenVersion: approver.tokenVersion })}`;
+
+    const invalidApprovalResponse = await request(app)
+      .post(`/api/purchase-orders/${po._id}/approve`)
+      .set("Authorization", approverToken);
+
+    expect(invalidApprovalResponse.status).toBe(409);
+    expect(invalidApprovalResponse.body.error.code).toBe("INVALID_PO_STATE");
+
+    const submitResponse = await request(app)
+      .post(`/api/purchase-orders/${po._id}/submit`)
+      .set("Authorization", authToken);
+
+    expect(submitResponse.status).toBe(200);
+    expect(submitResponse.body.data.status).toBe("Pending Approval");
+  });
+
   it("prevents concurrent transfers from reserving more stock than available", async () => {
     const inventoryBeforeTransfers = await Inventory.findById(inventoryId);
     const destination = await Warehouse.create({ name: "Warehouse B", code: "WH-B-01", location: "Delhi" });

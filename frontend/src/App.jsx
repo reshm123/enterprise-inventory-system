@@ -14,6 +14,11 @@ import MainLayout from "./layouts/MainLayout";
 import Products from "./pages/products/Products";
 import Inventory from "./pages/inventory/Inventory";
 import Suppliers from "./pages/suppliers/Suppliers";
+import Warehouses from "./pages/warehouses/Warehouses";
+import PurchaseOrders from "./pages/purchaseOrders/PurchaseOrders";
+import Transfers from "./pages/transfers/Transfers";
+import AuditHistory from "./pages/audit/AuditHistory";
+import UserManagement from "./pages/users/UserManagement";
 
 const App = () => {
   return (
@@ -60,37 +65,27 @@ const App = () => {
 
             <Route
               path="/warehouses"
-              element={
-                <h1>Warehouses Coming Soon</h1>
-              }
+              element={<Warehouses />}
             />
 
             <Route
               path="/purchase-orders"
-              element={
-                <h1>Purchase Orders Coming Soon</h1>
-              }
+              element={<PurchaseOrders />}
             />
 
             <Route
               path="/transfers"
-              element={
-                <h1>Stock Transfers Coming Soon</h1>
-              }
+              element={<Transfers />}
             />
 
             <Route
               path="/audit"
-              element={
-                <h1>Audit History Coming Soon</h1>
-              }
+              element={<AuditHistory />}
             />
 
             <Route
               path="/users"
-              element={
-                <h1>User Management Coming Soon</h1>
-              }
+              element={<UserManagement />}
             />
 
           </Route>
@@ -98,6 +93,16 @@ const App = () => {
         </Route>
 
         {/* Default */}
+
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
+        />
 
         <Route
           path="*"

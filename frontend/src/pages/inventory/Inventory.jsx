@@ -31,50 +31,50 @@ const Inventory = () => {
 
   const limit = 10;
 
-  useEffect(() => {
-    loadInventory();
-  }, [page]);
-
-  const loadInventory = () => {
+  const loadInventory = (nextPage = page, nextFilters = filters) => {
     const params = {
-      page,
+      page: nextPage,
       limit,
     };
 
-    if (filters.search) {
-      params.search = filters.search;
+    if (nextFilters.search) {
+      params.search = nextFilters.search;
     }
 
-    if (filters.warehouse) {
-      params.warehouse = filters.warehouse;
+    if (nextFilters.warehouse) {
+      params.warehouse = nextFilters.warehouse;
     }
 
-    if (filters.category) {
-      params.category = filters.category;
+    if (nextFilters.category) {
+      params.category = nextFilters.category;
     }
 
-    if (filters.stockStatus) {
-      params.stockStatus = filters.stockStatus;
+    if (nextFilters.stockStatus) {
+      params.stockStatus = nextFilters.stockStatus;
     }
 
-    if (filters.lowStock) {
+    if (nextFilters.lowStock) {
       params.lowStock = true;
     }
 
-    if (filters.outOfStock) {
+    if (nextFilters.outOfStock) {
       params.outOfStock = true;
     }
 
-    if (filters.sortBy) {
-      params.sortBy = filters.sortBy;
+    if (nextFilters.sortBy) {
+      params.sortBy = nextFilters.sortBy;
     }
 
-    if (filters.sortOrder) {
-      params.sortOrder = filters.sortOrder;
+    if (nextFilters.sortOrder) {
+      params.sortOrder = nextFilters.sortOrder;
     }
 
     dispatch(fetchInventory(params));
   };
+
+  useEffect(() => {
+    loadInventory(page, filters);
+  }, [dispatch, page, filters]);
 
   const handleFilterChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -87,12 +87,8 @@ const Inventory = () => {
 
   const handleSearch = (event) => {
     event.preventDefault();
-
     setPage(1);
-
-    setTimeout(() => {
-      loadInventory();
-    }, 0);
+    loadInventory(1, filters);
   };
 
   const handleReset = () => {
@@ -109,7 +105,6 @@ const Inventory = () => {
 
     setFilters(defaultFilters);
     setPage(1);
-
     dispatch(
       fetchInventory({
         page: 1,
@@ -125,11 +120,7 @@ const Inventory = () => {
   };
 
   const getProductName = (item) => {
-    return (
-      item.productId?.name ||
-      item.productName ||
-      "-"
-    );
+    return item.productId?.name || item.productName || "-";
   };
 
   const getSku = (item) => {
