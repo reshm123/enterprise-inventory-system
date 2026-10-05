@@ -263,7 +263,7 @@ describe("Inventory management API", () => {
 
     const submitResponse = await request(app)
       .post(`/api/purchase-orders/${po._id}/submit`)
-      .set("Authorization", authToken);
+      .set("Authorization", approverToken);
 
     expect(submitResponse.status).toBe(200);
     expect(submitResponse.body.data.status).toBe("Pending Approval");
