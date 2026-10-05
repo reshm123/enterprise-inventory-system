@@ -4,6 +4,7 @@ import Warehouse from "../models/warehouse.js";
 import Inventory from "../models/inventory.model.js";
 import StockMovement from "../models/stockMovement.model.js";
 import StockTransfer from "../models/stockTransfer.model.js";
+import AuditLog from "../models/auditLog.model.js";
 
 const fail = (message, statusCode = 400, code = "VALIDATION_ERROR") => {
   const error = new Error(message);
@@ -26,6 +27,20 @@ const getTransfer = async (id, session) => {
   if (!transfer) fail("Stock transfer not found", 404, "TRANSFER_NOT_FOUND");
   return transfer;
 };
+
+const recordTransferAudit = (transfer, action, performedBy, session) => AuditLog.create([{
+  action,
+  entityType: "StockTransfer",
+  entityId: transfer._id,
+  performedBy,
+  details: {
+    transferNumber: transfer.transferNumber,
+    fromWarehouse: transfer.fromWarehouse,
+    toWarehouse: transfer.toWarehouse,
+    status: transfer.status,
+    items: transfer.items.map(({ productId, quantity }) => ({ productId, quantity }))
+  }
+}], { session });
 
 const normalizeItems = async (items) => {
   if (!Array.isArray(items) || items.length === 0) fail("At least one transfer item is required");
@@ -56,11 +71,25 @@ export const createStockTransferService = async (data, userId) => {
   await assertWarehouses(data.fromWarehouse, data.toWarehouse);
   const items = await normalizeItems(data.items);
   const transferNumber = String(data.transferNumber || `TR-${Date.now()}`).trim().toUpperCase();
+  const session = await mongoose.startSession();
   try {
-    return await StockTransfer.create({ transferNumber, fromWarehouse: data.fromWarehouse, toWarehouse: data.toWarehouse, items, requestedBy: userId });
+    let result;
+    await runWithTransaction(session, async () => {
+      [result] = await StockTransfer.create([{
+        transferNumber,
+        fromWarehouse: data.fromWarehouse,
+        toWarehouse: data.toWarehouse,
+        items,
+        requestedBy: userId
+      }], { session });
+      await recordTransferAudit(result, "STOCK_TRANSFER_CREATED", userId, session);
+    });
+    return result;
   } catch (error) {
     if (error.code === 11000) fail("Transfer number already exists", 409, "DUPLICATE_TRANSFER_NUMBER");
     throw error;
+  } finally {
+    await session.endSession();
   }
 };
 
@@ -74,11 +103,22 @@ export const listStockTransfersService = async (query = {}) => {
 
 export const getStockTransferService = (id) => getTransfer(id);
 
-export const requestStockTransferService = async (id) => {
-  const transfer = await getTransfer(id);
-  if (transfer.status !== "Draft") fail("Only draft transfers can be requested", 409, "INVALID_TRANSFER_STATE");
-  transfer.status = "Requested";
-  return transfer.save();
+export const requestStockTransferService = async (id, user) => {
+  const session = await mongoose.startSession();
+  try {
+    let result;
+    await runWithTransaction(session, async () => {
+      const transfer = await getTransfer(id, session);
+      if (transfer.status !== "Draft") fail("Only draft transfers can be requested", 409, "INVALID_TRANSFER_STATE");
+      transfer.status = "Requested";
+      await transfer.save({ session });
+      await recordTransferAudit(transfer, "STOCK_TRANSFER_REQUESTED", user.id, session);
+      result = transfer;
+    });
+    return result;
+  } finally {
+    await session.endSession();
+  }
 };
 
 export const approveStockTransferService = async (id, user) => {
@@ -99,6 +139,7 @@ export const approveStockTransferService = async (id, user) => {
       transfer.status = "Approved";
       transfer.approvedBy = user.id;
       await transfer.save({ session });
+      await recordTransferAudit(transfer, "STOCK_TRANSFER_APPROVED", user.id, session);
       result = transfer;
     });
     return result;
@@ -126,6 +167,7 @@ export const shipStockTransferService = async (id, user) => {
       transfer.status = "In Transit";
       await transfer.save({ session });
       await StockMovement.insertMany(movements, { session });
+      await recordTransferAudit(transfer, "STOCK_TRANSFER_SHIPPED", user.id, session);
       result = transfer;
     });
     return result;
@@ -154,6 +196,7 @@ export const receiveStockTransferService = async (id, user) => {
       transfer.status = "Received";
       await transfer.save({ session });
       await StockMovement.insertMany(movements, { session });
+      await recordTransferAudit(transfer, "STOCK_TRANSFER_RECEIVED", user.id, session);
       result = transfer;
     });
     return result;
@@ -162,7 +205,7 @@ export const receiveStockTransferService = async (id, user) => {
   }
 };
 
-export const cancelStockTransferService = async (id) => {
+export const cancelStockTransferService = async (id, user) => {
   const session = await mongoose.startSession();
   try {
     let result;
@@ -176,6 +219,7 @@ export const cancelStockTransferService = async (id) => {
       }
       transfer.status = "Cancelled";
       await transfer.save({ session });
+      await recordTransferAudit(transfer, "STOCK_TRANSFER_CANCELLED", user.id, session);
       result = transfer;
     });
     return result;

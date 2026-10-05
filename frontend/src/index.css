@@ -664,6 +664,97 @@ body {
   color: #991b1b;
 }
 
+.transfer-items {
+  margin-top: 24px;
+}
+
+.transfer-item-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(120px, 180px) auto;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.transfer-item-list {
+  min-width: 180px;
+  padding-left: 18px;
+}
+
+.transfer-item-list li + li {
+  margin-top: 4px;
+}
+
+.transfer-item-list span,
+.muted-text,
+.route-arrow,
+.audit-role {
+  color: #64748b;
+}
+
+.route-arrow {
+  display: inline-block;
+  padding: 0 5px;
+}
+
+.transfer-status,
+.audit-action {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 4px;
+  background: #eef2f6;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-requested {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-approved,
+.status-received {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-in-transit {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.transfer-filters .button-row {
+  margin-top: 0;
+}
+
+.entity-id,
+.audit-role {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.audit-details pre {
+  max-width: 340px;
+  max-height: 180px;
+  margin-top: 8px;
+  overflow: auto;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 768px) {
   .form-grid,
   .filter-grid {
@@ -679,5 +770,9 @@ body {
   .checkbox-row {
     flex-direction: column;
     gap: 10px;
+  }
+
+  .transfer-item-row {
+    grid-template-columns: 1fr;
   }
 }

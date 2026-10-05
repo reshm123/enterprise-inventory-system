@@ -8,6 +8,7 @@ import inventoryRoutes from "./routes/inventory.routes.js";
 import stockMovementRoutes from "./routes/stockMovement.routes.js";
 import purchaseOrderRoutes from "./routes/purchaseOrder.routes.js";
 import stockTransferRoutes from "./routes/stockTransfer.routes.js";
+import auditLogRoutes from "./routes/auditLog.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
@@ -50,6 +51,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/stock-movements", stockMovementRoutes);
 app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/stock-transfers", stockTransferRoutes);
+app.use("/api/audit-logs", auditLogRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use(errorHandler);
 

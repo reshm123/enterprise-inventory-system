@@ -93,6 +93,61 @@ describe("Inventory management API", () => {
     expect(response.headers["access-control-allow-methods"]).toContain("POST");
   });
 
+  it("lists audit history for authorized users with pagination metadata", async () => {
+    await AuditLog.create({
+      action: "AUDIT_HISTORY_TEST",
+      entityType: "Inventory",
+      entityId: new mongoose.Types.ObjectId(),
+      performedBy: userId,
+      details: { reason: "Audit endpoint test" }
+    });
+
+    const response = await request(app)
+      .get("/api/audit-logs")
+      .set("Authorization", authToken)
+      .query({ action: "AUDIT_HISTORY_TEST", page: 1, limit: 10 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.total).toBe(1);
+    expect(response.body.data.items[0].performedBy.name).toBe("Inventory Admin");
+    expect(response.body.data.items[0].details.reason).toBe("Audit endpoint test");
+  });
+
+  it("records stock-transfer creation and request in audit history", async () => {
+    const destination = await Warehouse.create({
+      name: "Transfer Audit Destination",
+      code: "WH-AUDIT-01",
+      location: "Delhi",
+      status: "ACTIVE"
+    });
+    const createResponse = await request(app)
+      .post("/api/stock-transfers")
+      .set("Authorization", authToken)
+      .send({
+        transferNumber: "TR-AUDIT-1",
+        fromWarehouse: warehouseId,
+        toWarehouse: destination._id.toString(),
+        items: [{ productId, quantity: 1 }]
+      });
+
+    expect(createResponse.status).toBe(201);
+    const transferId = createResponse.body.data._id;
+    const requestResponse = await request(app)
+      .post(`/api/stock-transfers/${transferId}/request`)
+      .set("Authorization", authToken);
+
+    expect(requestResponse.status).toBe(200);
+    const auditResponse = await request(app)
+      .get("/api/audit-logs")
+      .set("Authorization", authToken)
+      .query({ entityType: "StockTransfer", limit: 10 });
+
+    expect(auditResponse.status).toBe(200);
+    expect(auditResponse.body.data.items.map((record) => record.action)).toEqual(
+      expect.arrayContaining(["STOCK_TRANSFER_CREATED", "STOCK_TRANSFER_REQUESTED"])
+    );
+  });
+
   it("creates stock and lists inventory for a warehouse", async () => {
     const createRes = await request(app)
       .post("/api/inventory")

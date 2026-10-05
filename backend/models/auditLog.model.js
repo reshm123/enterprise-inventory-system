@@ -31,6 +31,7 @@ const auditLogSchema = new mongoose.Schema(
 
 auditLogSchema.index({ entityType: 1, entityId: 1, createdAt: -1 });
 auditLogSchema.index({ performedBy: 1, createdAt: -1 });
+auditLogSchema.index({ createdAt: -1 });
 
 const AuditLog = mongoose.model("AuditLog", auditLogSchema);
 
