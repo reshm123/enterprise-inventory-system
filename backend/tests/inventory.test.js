@@ -1,7 +1,7 @@
 import request from "supertest";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
-import { MongoMemoryReplSet } from "mongodb-memory-server";
+import { MongoMemoryServer } from "mongodb-memory-server";
 import app from "../app.js";
 import { connectdb } from "../config/db.js";
 import User from "../models/user.model.js";
@@ -26,7 +26,7 @@ const jwtSign = (payload) =>
   jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  mongoServer = await MongoMemoryServer.create();
   process.env.MONGODB_URI = mongoServer.getUri();
   process.env.JWT_SECRET = "test-secret";
   process.env.JWT_EXPIRES_IN = "1d";

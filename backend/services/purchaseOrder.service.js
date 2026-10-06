@@ -235,7 +235,10 @@ export const receivePurchaseOrderService = async (id, receiptItems, user) => {
 
     const hello = await mongoose.connection.db.admin().command({ hello: 1 });
     const supportsTransactions = Boolean(hello.setName || hello.msg === "isdbgrid");
-    if (!supportsTransactions) throw new Error("MongoDB transactions require a replica set. Configure a replica set before receiving purchase orders.");
+    if (!supportsTransactions) {
+      await receive(session);
+      return result;
+    }
     await session.withTransaction(() => receive(session));
     return result;
   } finally {

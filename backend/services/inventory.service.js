@@ -13,6 +13,21 @@ import {
 import AuditLog from "../models/auditLog.model.js";
 import Inventory from "../models/inventory.model.js";
 
+const supportsTransactions = async () => {
+  if (!mongoose.connection.db) return false;
+  try {
+    const hello = await mongoose.connection.db.admin().command({ hello: 1 });
+    return Boolean(hello.setName || hello.msg === "isdbgrid");
+  } catch {
+    return false;
+  }
+};
+
+const runInTransaction = async (session, operation) => {
+  if (!(await supportsTransactions())) return operation();
+  return session.withTransaction(operation);
+};
+
 export const createInventoryService = async ({ productId, warehouseId, quantity = 0, reorderLevel = 0 }, user) => {
   if (!productId || !warehouseId) {
     const error = new Error("Product and warehouse are required");
@@ -48,7 +63,7 @@ export const createInventoryService = async ({ productId, warehouseId, quantity 
   const session = await mongoose.startSession();
   try {
     let inventory;
-    await session.withTransaction(async () => {
+    await runInTransaction(session, async () => {
       const existing = await findInventoryByProductAndWarehouse(productId, warehouseId, session);
       if (existing) {
         const error = new Error("Inventory already exists for this product and warehouse");
@@ -134,7 +149,7 @@ export const adjustInventoryService = async ({ productId, warehouseId, quantity,
   const session = await mongoose.startSession();
   try {
     let updatedInventory;
-    await session.withTransaction(async () => {
+    await runInTransaction(session, async () => {
       const inventory = await findInventoryByProductAndWarehouse(productId, warehouseId, session);
       if (!inventory) {
         const error = new Error("Inventory not found for the selected product and warehouse");

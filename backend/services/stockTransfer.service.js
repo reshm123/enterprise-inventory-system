@@ -17,7 +17,18 @@ const assertId = (value, field) => {
   if (!mongoose.isValidObjectId(value)) fail(`${field} is invalid`);
 };
 
+const supportsTransactions = async () => {
+  if (!mongoose.connection.db) return false;
+  try {
+    const hello = await mongoose.connection.db.admin().command({ hello: 1 });
+    return Boolean(hello.setName || hello.msg === "isdbgrid");
+  } catch {
+    return false;
+  }
+};
+
 const runWithTransaction = async (session, operation) => {
+  if (!(await supportsTransactions())) return operation();
   return session.withTransaction(operation);
 };
 
