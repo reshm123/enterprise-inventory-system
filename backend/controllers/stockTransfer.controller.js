@@ -14,10 +14,10 @@ export const createStockTransfer = async (req, res, next) => {
   try { return successResponse(res, 201, "Stock transfer created successfully", await createStockTransferService(req.body, req.user.id)); } catch (error) { next(error); }
 };
 export const listStockTransfers = async (req, res, next) => {
-  try { return successResponse(res, 200, "Stock transfers fetched successfully", await listStockTransfersService(req.query)); } catch (error) { next(error); }
+  try { return successResponse(res, 200, "Stock transfers fetched successfully", await listStockTransfersService(req.query, req.user)); } catch (error) { next(error); }
 };
 export const getStockTransfer = async (req, res, next) => {
-  try { return successResponse(res, 200, "Stock transfer fetched successfully", await getStockTransferService(req.params.id)); } catch (error) { next(error); }
+  try { return successResponse(res, 200, "Stock transfer fetched successfully", await getStockTransferService(req.params.id, req.user)); } catch (error) { next(error); }
 };
 export const requestStockTransfer = async (req, res, next) => {
   try { return successResponse(res, 200, "Stock transfer requested successfully", await requestStockTransferService(req.params.id, req.user)); } catch (error) { next(error); }

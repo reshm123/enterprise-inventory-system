@@ -18,6 +18,17 @@ const validate = (schema, data) => {
   return value;
 };
 
+const assertWarehouseAccess = (user, warehouseId) => {
+  if (!user || user.role !== "Warehouse Staff") return;
+  const allowedWarehouseIds = (user.warehouseIds || []).map((id) => id.toString());
+  if (!allowedWarehouseIds.includes(warehouseId.toString())) {
+    const error = new Error("You do not have access to this warehouse");
+    error.statusCode = 403;
+    error.code = "FORBIDDEN";
+    throw error;
+  }
+};
+
 export const createWarehouseService = async (data) => {
   const warehouseData = validate(createWarehouseSchema, data);
   if (await findWarehouseByCode(warehouseData.code)) {
@@ -26,16 +37,33 @@ export const createWarehouseService = async (data) => {
   return createWarehouse(warehouseData);
 };
 
-export const getWarehouseService = async (warehouseId) => {
+export const getWarehouseService = async (warehouseId, user = {}) => {
   const warehouse = await findWarehouseById(warehouseId);
   if (!warehouse) throw new Error("Warehouse not found");
+  assertWarehouseAccess(user, warehouse._id);
   return warehouse;
 };
 
-export const getWarehousesService = async (query) => {
+export const getWarehousesService = async (query = {}, user = {}) => {
   const page = Math.max(Number(query.page) || 1, 1);
   const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 100);
-  return findAllWarehouses({ search: query.search, status: query.status, page, limit });
+
+  const warehouseIds = user.role === "Warehouse Staff" ? (user.warehouseIds || []).map((id) => id.toString()) : [];
+
+  if (user.role === "Warehouse Staff" && !warehouseIds.length) {
+    return {
+      items: [],
+      pagination: { page, limit, total: 0, totalPages: 0 }
+    };
+  }
+
+  return findAllWarehouses({
+    search: query.search,
+    status: query.status,
+    page,
+    limit,
+    warehouseIds: user.role === "Warehouse Staff" ? warehouseIds : undefined
+  });
 };
 
 export const updateWarehouseService = async (warehouseId, data) => {

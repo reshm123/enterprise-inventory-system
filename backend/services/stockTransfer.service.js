@@ -104,15 +104,40 @@ export const createStockTransferService = async (data, userId) => {
   }
 };
 
-export const listStockTransfersService = async (query = {}) => {
+export const listStockTransfersService = async (query = {}, user = {}) => {
   const filter = {};
   if (query.status) filter.status = query.status;
   if (query.fromWarehouse) filter.fromWarehouse = query.fromWarehouse;
   if (query.toWarehouse) filter.toWarehouse = query.toWarehouse;
+
+  if (user.role === "Warehouse Staff") {
+    const allowedWarehouseIds = (user.warehouseIds || []).map((id) => id.toString());
+    if (!allowedWarehouseIds.length) return [];
+    filter.$or = [
+      { fromWarehouse: { $in: allowedWarehouseIds } },
+      { toWarehouse: { $in: allowedWarehouseIds } }
+    ];
+  }
+
   return StockTransfer.find(filter).sort({ createdAt: -1 });
 };
 
-export const getStockTransferService = (id) => getTransfer(id);
+export const getStockTransferService = async (id, user = {}) => {
+  const transfer = await getTransfer(id);
+  if (user.role === "Warehouse Staff") {
+    const allowedWarehouseIds = (user.warehouseIds || []).map((id) => id.toString());
+    const hasAccess = [transfer.fromWarehouse, transfer.toWarehouse].some((warehouseId) =>
+      warehouseId && allowedWarehouseIds.includes(warehouseId.toString())
+    );
+    if (!hasAccess) {
+      const error = new Error("You do not have access to this stock transfer");
+      error.statusCode = 403;
+      error.code = "FORBIDDEN";
+      throw error;
+    }
+  }
+  return transfer;
+};
 
 export const requestStockTransferService = async (id, user) => {
   const session = await mongoose.startSession();

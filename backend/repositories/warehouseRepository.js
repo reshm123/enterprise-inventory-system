@@ -8,8 +8,12 @@ export const findWarehouseByCode = async (code) =>
 export const findWarehouseById = async (warehouseId) =>
   Warehouse.findById(warehouseId).populate("managerId", "name email role");
 
-export const findAllWarehouses = async ({ search, status, page, limit }) => {
+export const findAllWarehouses = async ({ search, status, page, limit, warehouseIds }) => {
   const filter = {};
+
+  if (warehouseIds && warehouseIds.length) {
+    filter._id = { $in: warehouseIds };
+  }
 
   if (search) {
     filter.$or = [

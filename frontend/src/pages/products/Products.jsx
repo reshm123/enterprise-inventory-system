@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { Link } from "react-router-dom";
 
 import {
   fetchProducts,
@@ -409,6 +410,10 @@ const Products = () => {
 
                     <td>
                       <div className="action-buttons">
+                        <Link to={`/products/${product._id}`} className="btn btn-sm btn-secondary">
+                          View
+                        </Link>
+
                         <button
                           type="button"
                           className="edit-button"

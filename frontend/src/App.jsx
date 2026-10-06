@@ -19,6 +19,8 @@ import PurchaseOrders from "./pages/purchaseOrders/PurchaseOrders";
 import Transfers from "./pages/transfers/Transfers";
 import AuditHistory from "./pages/audit/AuditHistory";
 import UserManagement from "./pages/users/UserManagement";
+import ProductDetails from "./pages/products/ProductDetails";
+import PurchaseOrderDetails from "./pages/purchaseOrders/PurchaseOrderDetails";
 
 const App = () => {
   return (
@@ -48,11 +50,9 @@ const App = () => {
               element={<Dashboard />}
             />
 
-            {/* Future routes */}
+            <Route path="/products" element={<Products />} />
+            <Route path="/products/:id" element={<ProductDetails />} />
 
-             <Route path="/products" element={<Products />} />
-
-           
           <Route
             path="/inventory"
             element={<Inventory />}
@@ -72,6 +72,10 @@ const App = () => {
               path="/purchase-orders"
               element={<PurchaseOrders />}
             />
+            <Route
+              path="/purchase-orders/:id"
+              element={<PurchaseOrderDetails />}
+            />
 
             <Route
               path="/transfers"
@@ -83,10 +87,12 @@ const App = () => {
               element={<AuditHistory />}
             />
 
-            <Route
-              path="/users"
-              element={<UserManagement />}
-            />
+            <Route element={<ProtectedRoute roles={["Admin"]} />}>
+              <Route
+                path="/users"
+                element={<UserManagement />}
+              />
+            </Route>
 
           </Route>
 

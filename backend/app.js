@@ -10,6 +10,7 @@ import purchaseOrderRoutes from "./routes/purchaseOrder.routes.js";
 import stockTransferRoutes from "./routes/stockTransfer.routes.js";
 import auditLogRoutes from "./routes/auditLog.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
+import userRoutes from "./routes/user.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
@@ -53,6 +54,7 @@ app.use("/api/purchase-orders", purchaseOrderRoutes);
 app.use("/api/stock-transfers", stockTransferRoutes);
 app.use("/api/audit-logs", auditLogRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/users", userRoutes);
 app.use(errorHandler);
 
 export default app;

@@ -22,7 +22,7 @@ export const createWarehouse = async (req, res, next) => {
 
 export const getWarehouses = async (req, res, next) => {
   try {
-    const warehouses = await getWarehousesService(req.query);
+    const warehouses = await getWarehousesService(req.query, req.user);
     return successResponse(res, 200, "Warehouses fetched successfully", warehouses);
   } catch (error) {
     next(error);
@@ -31,7 +31,7 @@ export const getWarehouses = async (req, res, next) => {
 
 export const getWarehouseById = async (req, res, next) => {
   try {
-    const warehouse = await getWarehouseService(req.params.id);
+    const warehouse = await getWarehouseService(req.params.id, req.user);
     return successResponse(res, 200, "Warehouse fetched successfully", warehouse);
   } catch (error) {
     next(error);

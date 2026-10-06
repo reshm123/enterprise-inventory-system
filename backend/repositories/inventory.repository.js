@@ -82,8 +82,13 @@ export const createStockMovementEntry = async (data, session) => {
   return movement;
 };
 
-export const getLowStockRecords = async () => {
-  return Inventory.find({ $expr: { $lte: ["$availableQuantity", "$reorderLevel"] } })
+export const getLowStockRecords = async (filter = {}) => {
+  const query = {
+    ...filter,
+    $expr: { $lte: ["$availableQuantity", "$reorderLevel"] }
+  };
+
+  return Inventory.find(query)
     .populate("productId", "sku name category")
     .populate("warehouseId", "name code location");
 };

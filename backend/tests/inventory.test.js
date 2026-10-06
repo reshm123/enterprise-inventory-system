@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals";
 import request from "supertest";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
@@ -14,6 +15,7 @@ import Supplier from "../models/Supplier.js";
 import Warehouse from "../models/warehouse.js";
 import { receivePurchaseOrderService } from "../services/purchaseOrder.service.js";
 import { approveStockTransferService } from "../services/stockTransfer.service.js";
+import { authorizeRoles } from "../middleware/role.middleware.js";
 
 let mongoServer;
 let authToken;
@@ -37,7 +39,7 @@ beforeAll(async () => {
     name: "Inventory Admin",
     email: "admin@inventory.test",
     password: "Password123!",
-    role: "Warehouse Manager",
+    role: "Admin",
     status: "Active"
   });
   userId = user._id.toString();
@@ -78,6 +80,21 @@ afterAll(async () => {
   if (mongoServer) {
     await mongoServer.stop();
   }
+});
+
+describe("Role and access validation", () => {
+  it("does not continue the request chain when the user is missing", () => {
+    const req = {};
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
+    const next = jest.fn();
+
+    expect(() => authorizeRoles("Admin")(req, res, next)).not.toThrow();
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(next).not.toHaveBeenCalled();
+  });
 });
 
 describe("Inventory management API", () => {
@@ -190,6 +207,66 @@ describe("Inventory management API", () => {
     expect(response.body.data.role).toBe("Warehouse Staff");
   });
 
+  it("allows admins to list users and update a user role", async () => {
+    const adminUser = await User.create({
+      name: "System Admin",
+      email: "system-admin@inventory.test",
+      password: "Password123!",
+      role: "Admin",
+      status: "Active"
+    });
+
+    const targetUser = await User.create({
+      name: "Warehouse Agent",
+      email: "warehouse-agent@inventory.test",
+      password: "Password123!",
+      role: "Warehouse Staff",
+      status: "Active"
+    });
+
+    const adminToken = `Bearer ${jwtSign({ id: adminUser._id.toString(), role: adminUser.role, tokenVersion: adminUser.tokenVersion })}`;
+
+    const listResponse = await request(app)
+      .get("/api/users")
+      .set("Authorization", adminToken);
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.success).toBe(true);
+    expect(listResponse.body.data.some((user) => user.email === "warehouse-agent@inventory.test")).toBe(true);
+
+    const updateResponse = await request(app)
+      .patch(`/api/users/${targetUser._id}/role`)
+      .set("Authorization", adminToken)
+      .send({ role: "Procurement Manager" });
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body.data.role).toBe("Procurement Manager");
+  });
+
+  it("limits warehouse staff dashboard data to assigned warehouse scope", async () => {
+    const staffUser = await User.create({
+      name: "Warehouse Staff User",
+      email: "warehouse-staff-dashboard@inventory.test",
+      password: "Password123!",
+      role: "Warehouse Staff",
+      status: "Active",
+      warehouseIds: [warehouseId]
+    });
+
+    const staffToken = `Bearer ${jwtSign({ id: staffUser._id.toString(), role: staffUser.role, tokenVersion: staffUser.tokenVersion })}`;
+
+    const response = await request(app)
+      .get("/api/dashboard/summary")
+      .set("Authorization", staffToken);
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.totalPurchaseValue).toBe(0);
+    expect(response.body.data.pendingPurchaseOrders).toBe(0);
+    expect(response.body.data.totalSuppliers).toBe(0);
+    expect(response.body.data.inventoryByWarehouse.every((entry) => entry.warehouseId.toString() === warehouseId.toString())).toBe(true);
+  });
+
   it("rejects direct inventory quantity changes", async () => {
     const response = await request(app)
       .patch(`/api/inventory/${inventoryId}`)
@@ -222,6 +299,53 @@ describe("Inventory management API", () => {
     expect(adjustmentRes.status).toBe(200);
     expect(adjustmentRes.body.success).toBe(true);
     expect(adjustmentRes.body.data.quantity).toBe(45);
+  });
+
+  it("enforces the stock-adjustment role matrix", async () => {
+    const auditor = await User.create({
+      name: "Audit Reviewer",
+      email: "audit-reviewer@inventory.test",
+      password: "Password123!",
+      role: "Inventory Auditor",
+      status: "Active"
+    });
+
+    const staff = await User.create({
+      name: "Warehouse Clerk",
+      email: "warehouse-clerk@inventory.test",
+      password: "Password123!",
+      role: "Warehouse Staff",
+      status: "Active"
+    });
+
+    const auditorToken = `Bearer ${jwtSign({ id: auditor._id.toString(), role: auditor.role, tokenVersion: auditor.tokenVersion })}`;
+    const staffToken = `Bearer ${jwtSign({ id: staff._id.toString(), role: staff.role, tokenVersion: staff.tokenVersion })}`;
+
+    const allowedResponse = await request(app)
+      .post("/api/inventory/adjust")
+      .set("Authorization", auditorToken)
+      .send({
+        productId,
+        warehouseId,
+        quantity: -2,
+        reason: "Audit verification"
+      });
+
+    expect(allowedResponse.status).toBe(200);
+    expect(allowedResponse.body.success).toBe(true);
+
+    const deniedResponse = await request(app)
+      .post("/api/inventory/adjust")
+      .set("Authorization", staffToken)
+      .send({
+        productId,
+        warehouseId,
+        quantity: -3,
+        reason: "Unauthorized instruction"
+      });
+
+    expect(deniedResponse.status).toBe(403);
+    expect(deniedResponse.body.error.code).toBe("FORBIDDEN");
   });
 
   it("rejects invalid stock reduction below zero", async () => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { Link } from "react-router-dom";
 
 import {
   fetchPurchaseOrders,
@@ -374,6 +375,9 @@ const PurchaseOrders = () => {
                     <td>{Number(order.totalAmount || 0).toFixed(2)}</td>
                     <td>
                       <div className="action-buttons">
+                        <Link to={`/purchase-orders/${order._id}`} className="btn btn-sm btn-secondary">
+                          View
+                        </Link>
                         <button
                           type="button"
                           className="btn btn-sm btn-primary"

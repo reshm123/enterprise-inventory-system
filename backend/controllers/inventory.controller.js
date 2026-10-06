@@ -19,7 +19,7 @@ export const createInventory = async (req, res, next) => {
 
 export const listInventory = async (req, res, next) => {
   try {
-    const result = await getInventoryService(req.query);
+    const result = await getInventoryService(req.query, req.user);
     return successResponse(res, 200, "Inventory fetched successfully", result);
   } catch (error) {
     next(error);
@@ -28,7 +28,7 @@ export const listInventory = async (req, res, next) => {
 
 export const getInventoryById = async (req, res, next) => {
   try {
-    const inventory = await getInventoryByIdService(req.params.id);
+    const inventory = await getInventoryByIdService(req.params.id, req.user);
     return successResponse(res, 200, "Inventory item fetched successfully", inventory);
   } catch (error) {
     next(error);
@@ -37,7 +37,7 @@ export const getInventoryById = async (req, res, next) => {
 
 export const getLowStockInventory = async (req, res, next) => {
   try {
-    const result = await getLowStockInventoryService();
+    const result = await getLowStockInventoryService(req.user);
     return successResponse(res, 200, "Low stock items fetched successfully", result);
   } catch (error) {
     next(error);

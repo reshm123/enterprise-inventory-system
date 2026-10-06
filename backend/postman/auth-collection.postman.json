@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "8e4f8a20-4d8b-4c3e-9a61-auth-api",
-    "name": "Auth Collection",
-    "description": "Authentication API collection for user registration, login, current user profile, and logout.",
+    "_postman_id": "enterprise-inventory-system-collection",
+    "name": "Enterprise Inventory System API",
+    "description": "Complete Postman collection for the Enterprise Inventory System backend.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -17,162 +17,1819 @@
   ],
   "item": [
     {
-      "name": "1. Register",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\",\n  \"role\": \"Admin\"\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/auth/register",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "auth",
-            "register"
-          ]
-        },
-        "description": "Creates a new user account."
-      },
-      "response": []
-    },
-    {
-      "name": "2. Login",
-      "event": [
+      "name": "Auth",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "const json = pm.response.json();",
-              "",
-              "if (json.data && json.data.token) {",
-              "    pm.collectionVariables.set(\"token\", json.data.token);",
-              "    console.log(\"Token saved successfully\");",
-              "}"
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
-            "type": "text/javascript"
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}",
-          "options": {
-            "raw": {
-              "language": "json"
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin1@example.com\",\n  \"password\": \"admin123\",\n  \"role\": \"Admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
             }
-          }
+          },
+          "response": []
         },
-        "url": {
-          "raw": "{{baseUrl}}/api/auth/login",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "auth",
-            "login"
-          ]
-        },
-        "description": "Authenticates a user and returns an access token. The token is automatically saved as a collection variable."
-      },
-      "response": []
-    },
-    {
-      "name": "3. Me",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
-            }
-          ]
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/auth/me",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "auth",
-            "me"
-          ]
-        },
-        "description": "Returns the profile of the currently authenticated user."
-      },
-      "response": []
-    },
-    {
-      "name": "4. Logout",
-      "event": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "if (pm.response.code >= 200 && pm.response.code < 300) {",
-              "    pm.collectionVariables.unset(\"token\");",
-              "    console.log(\"Token removed successfully\");",
-              "}"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [],
-        "auth": {
-          "type": "bearer",
-          "bearer": [
+          "name": "Login",
+          "event": [
             {
-              "key": "token",
-              "value": "{{token}}",
-              "type": "string"
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set(\"token\", json.data.token);",
+                  "  console.log(\"Token saved successfully\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
             }
-          ]
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/auth/logout",
-          "host": [
-            "{{baseUrl}}"
           ],
-          "path": [
-            "api",
-            "auth",
-            "logout"
-          ]
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin1@example.com\",\n  \"password\": \"admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
         },
-        "description": "Logs out the currently authenticated user and invalidates the session."
-      },
-      "response": []
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  pm.collectionVariables.unset(\"token\");",
+                  "  console.log(\"Token removed successfully\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"CAP-0011\",\n  \"name\": \"Dell Laptop\",\n  \"description\": \"Business laptop\",\n  \"category\": \"Electronics\",\n  \"brand\": \"Dell\",\n  \"unitPrice\": 55000,\n  \"reorderLevel\": 10,\n  \"status\": \"Active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/product",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "product"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Products",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/product",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "product"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product By ID",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/product/6aabd03df7db85746e66c837",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "product",
+                "6aabd03df7db85746e66c837"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dell Latitude Laptop\",\n  \"description\": \"Updated business laptop\",\n  \"category\": \"Electronics\",\n  \"brand\": \"Dell\",\n  \"unitPrice\": 60000,\n  \"reorderLevel\": 15,\n  \"status\": \"Active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/product/6aabd03df7db85746e66c837",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "product",
+                "6aabd03df7db85746e66c837"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Dashboard Summary",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "summary"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Warehouse",
+      "item": [
+        {
+          "name": "Create Warehouse",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Noida Warehouse\",\n  \"code\": \"WH-NOI-002932\",\n  \"location\": \"Sector 27, Noida\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/warehouse",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "warehouse"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Warehouses",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/warehouse?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "warehouse"
+              ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Warehouse By ID",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/warehouse/6aad25f36b3d841265a1ff81",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "warehouse",
+                "6aad25f36b3d841265a1ff81"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Warehouse PUT",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Noida Main Warehouse\",\n  \"location\": \"Sector 64, Noida\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/warehouse/6aad25f36b3d841265a1ff81",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "warehouse",
+                "6aad25f36b3d841265a1ff81"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Warehouse PATCH",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Noida Main Warehouse\",\n  \"location\": \"Sector 64, Noida\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/warehouse/6aad25f36b3d841265a1ff81",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "warehouse",
+                "6aad25f36b3d841265a1ff81"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Warehouse Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/warehouse/6aad25f36b3d841265a1ff81/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "warehouse",
+                "6aad25f36b3d841265a1ff81",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Warehouse",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/warehouse/6aad25f36b3d841265a1ff81",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "warehouse",
+                "6aad25f36b3d841265a1ff81"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Supplier",
+      "item": [
+        {
+          "name": "Create Supplier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ABC Electronics Pvt Ltd\",\n  \"email\": \"contaxcdt@abcelectronics.com\",\n  \"phone\": \"+91 9876543210\",\n  \"address\": \"Sector 62, Noida, Uttar Pradesh\",\n  \"gstVatNumber\": \"09ABCDE1234F1Z5\",\n  \"contactPerson\": \"Rajesh Kumar\",\n  \"status\": \"Active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/supplier",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "supplier"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Suppliers",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/supplier?status=Active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "supplier"
+              ],
+              "query": [
+                { "key": "status", "value": "Active" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Supplier By ID",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/supplier/6aad024daaa991cd7e54cd82",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "supplier",
+                "6aad024daaa991cd7e54cd82"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Supplier",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ABC Electronics India Pvt Ltd\",\n  \"phone\": \"+91 9999999999\",\n  \"contactPerson\": \"Amit Kumar\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/supplier/6aad024daaa991cd7e54cd82",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "supplier",
+                "6aad024daaa991cd7e54cd82"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Supplier",
+          "request": {
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/supplier/6aad25876b3d841265a1ff80",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "supplier",
+                "6aad25876b3d841265a1ff80"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Create Inventory",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"6ab4f2c683f5c4690a5f670b\",\n  \"warehouseId\": \"6ab4f4f883f5c4690a5f6712\",\n  \"quantity\": 500,\n  \"reorderLevel\": 1110\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Fetch Inventory",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory"
+              ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Warehouse Inventory",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory?warehouse=6ab0fb28a8cacebdb9dd230f&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory"
+              ],
+              "query": [
+                { "key": "warehouse", "value": "6ab0fb28a8cacebdb9dd230f" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Inventory",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory?search=laptop&page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory"
+              ],
+              "query": [
+                { "key": "search", "value": "laptop" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Advanced Inventory Filter",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory?page=1&limit=20&search=Dell%20Laptop&warehouse=6ab3a1ea7e3e00bba2b212fa&category=Electronics&lowStock=false&sortBy=availableQuantity&sortOrder=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory"
+              ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "search", "value": "Dell Laptop" },
+                { "key": "warehouse", "value": "6ab3a1ea7e3e00bba2b212fa" },
+                { "key": "category", "value": "Electronics" },
+                { "key": "lowStock", "value": "false" },
+                { "key": "sortBy", "value": "availableQuantity" },
+                { "key": "sortOrder", "value": "asc" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Inventory By ID",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/6ab0fc50fd4b4d6f8b8d1d89",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory",
+                "6ab0fc50fd4b4d6f8b8d1d89"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Low Stock Inventory",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/low-stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory",
+                "low-stock"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Adjust Inventory",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"6ab4f2c683f5c4690a5f670b\",\n  \"warehouseId\": \"6ab4f2f283f5c4690a5f670c\",\n  \"quantity\": 650,\n  \"reason\": \"Damaged items\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/adjust",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory",
+                "adjust"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Inventory",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reorderLevel\": 5,\n  \"reservedQuantity\": 50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inventory/6ab0fc50fd4b4d6f8b8d1d89",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "inventory",
+                "6ab0fc50fd4b4d6f8b8d1d89"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Stock Movements",
+      "item": [
+        {
+          "name": "Get Stock Movements",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-movements?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-movements"
+              ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stock Movements By Product & Warehouse",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-movements?productId=6ab39f8e00545c85cdc19bae&warehouseId=6ab39f8000545c85cdc19bad",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-movements"
+              ],
+              "query": [
+                { "key": "productId", "value": "6ab39f8e00545c85cdc19bae" },
+                { "key": "warehouseId", "value": "6ab39f8000545c85cdc19bad" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stock Movements By Type",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-movements?type=STOCK_ADJUSTMENT",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-movements"
+              ],
+              "query": [
+                { "key": "type", "value": "STOCK_ADJUSTMENT" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Stock Movement By ID",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-movements/6ab1044df27811c9139e92f1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-movements",
+                "6ab1044df27811c9139e92f1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Stock Transfers",
+      "item": [
+        {
+          "name": "Create Stock Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transferNumber\": \"TR-1007\",\n  \"fromWarehouse\": \"6ab3ba09b4db0640017c5114\",\n  \"toWarehouse\": \"6ab3ba71b4db0640017c5117\",\n  \"items\": [\n    {\n      \"productId\": \"6ab3b9f8b4db0640017c5113\",\n      \"quantity\": 100\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-transfers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Stock Transfers",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-transfers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Stock Transfer By ID",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-transfers/6ab4f12c83f5c4690a5f6706",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-transfers",
+                "6ab4f12c83f5c4690a5f6706"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Request Stock Transfer",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-transfers/6ab4f12c83f5c4690a5f6706/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-transfers",
+                "6ab4f12c83f5c4690a5f6706",
+                "request"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Stock Transfer",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-transfers/6ab4f12c83f5c4690a5f6706/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-transfers",
+                "6ab4f12c83f5c4690a5f6706",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ship Stock Transfer",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-transfers/6ab3ba82b4db0640017c511a/ship",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-transfers",
+                "6ab3ba82b4db0640017c511a",
+                "ship"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Receive Stock Transfer",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-transfers/6ab3ba82b4db0640017c511a/receive",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-transfers",
+                "6ab3ba82b4db0640017c511a",
+                "receive"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Stock Transfer",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stock-transfers/6ab4f12c83f5c4690a5f6706/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stock-transfers",
+                "6ab4f12c83f5c4690a5f6706",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Purchase Orders",
+      "item": [
+        {
+          "name": "List Purchase Orders",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders?page=1&limit=20&status=Draft",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders"
+              ],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "status", "value": "Draft" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"poNumber\": \"PO-1002\",\n  \"supplierId\": \"6ab4e848723caf433fbad597\",\n  \"warehouseId\": \"6ab3ba09b4db0640017c5114\",\n  \"expectedDeliveryDate\": \"2026-10-15\",\n  \"items\": [\n    {\n      \"productId\": \"6ab3b9f8b4db0640017c5113\",\n      \"quantity\": 500,\n      \"unitPrice\": 45000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Purchase Order By ID",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/6ab24a42bc6c6ea47aad7ab4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders",
+                "6ab24a42bc6c6ea47aad7ab4"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Purchase Order",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expectedDeliveryDate\": \"2026-10-20\",\n  \"status\": \"Pending\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/6ab4eedded379f638c29311d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders",
+                "6ab4eedded379f638c29311d"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Purchase Order",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/6ab4eedded379f638c29311d/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders",
+                "6ab4eedded379f638c29311d",
+                "submit"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Approved for procurement\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/6ab4eedded379f638c29311d/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders",
+                "6ab4eedded379f638c29311d",
+                "approve"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Receive Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"<PRODUCT_ID>\",\n      \"quantity\": 300\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/6ab4eedded379f638c29311d/receive",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders",
+                "6ab4eedded379f638c29311d",
+                "receive"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Purchase Order",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/6ab24a42bc6c6ea47aad7ab4/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders",
+                "6ab24a42bc6c6ea47aad7ab4",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Close Purchase Order",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/purchase-orders/6ab24a42bc6c6ea47aad7ab4/close",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "purchase-orders",
+                "6ab24a42bc6c6ea47aad7ab4",
+                "close"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"Warehouse Manager\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/64d5f6f6e7a6b93f2d6e5b12/role",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "64d5f6f6e7a6b93f2d6e5b12",
+                "role"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Audit Logs",
+      "item": [
+        {
+          "name": "List Audit Logs",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/audit-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "audit-logs"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

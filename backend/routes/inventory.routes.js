@@ -23,6 +23,6 @@ router.get("/", authorizeRoles("Admin", "Procurement Manager", "Warehouse Manage
 router.get("/low-stock", authorizeRoles("Admin", "Procurement Manager", "Warehouse Manager", "Warehouse Staff", "Inventory Auditor"), getLowStockInventory);
 router.get("/:id", authorizeRoles("Admin", "Procurement Manager", "Warehouse Manager", "Warehouse Staff", "Inventory Auditor"), getInventoryById);
 router.patch("/:id", authorizeRoles("Admin", "Warehouse Manager", "Warehouse Staff"), updateInventory);
-router.post("/adjust", authorizeRoles("Admin", "Warehouse Manager", "Warehouse Staff"), adjustInventory);
+router.post("/adjust", authorizeRoles("Admin", "Warehouse Manager", "Inventory Auditor"), adjustInventory);
 
 export default router;

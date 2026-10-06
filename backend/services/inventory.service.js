@@ -105,9 +105,34 @@ export const createInventoryService = async ({ productId, warehouseId, quantity 
   }
 };
 
-export const getInventoryService = async (query = {}) => {
+const assertWarehouseAccess = (user, warehouseId) => {
+  if (!user || user.role !== "Warehouse Staff") return;
+  const allowedWarehouseIds = (user.warehouseIds || []).map((id) => id.toString());
+  const targetWarehouseId = warehouseId?.toString();
+  if (!targetWarehouseId || !allowedWarehouseIds.includes(targetWarehouseId)) {
+    const error = new Error("You do not have access to this warehouse");
+    error.statusCode = 403;
+    error.code = "FORBIDDEN";
+    throw error;
+  }
+};
+
+export const getInventoryService = async (query = {}, user = {}) => {
   const page = Number(query.page || 1);
   const limit = Number(query.limit || 20);
+
+  if (user.role === "Warehouse Staff") {
+    const allowedWarehouseIds = (user.warehouseIds || []).map((id) => id.toString());
+    if (!allowedWarehouseIds.length) {
+      return { items: [], total: 0, page, limit, totalPages: 0 };
+    }
+
+    if (query.warehouse) {
+      assertWarehouseAccess(user, query.warehouse);
+    }
+
+    query.warehouse = { $in: allowedWarehouseIds };
+  }
 
   const result = await listInventoryRecords({
     search: query.search,
@@ -130,8 +155,9 @@ export const getInventoryService = async (query = {}) => {
   };
 };
 
-export const getLowStockInventoryService = async () => {
-  const items = await getLowStockRecords();
+export const getLowStockInventoryService = async (user = {}) => {
+  const allowedWarehouseIds = user.role === "Warehouse Staff" ? (user.warehouseIds || []).map((id) => id.toString()) : [];
+  const items = await getLowStockRecords(allowedWarehouseIds.length ? { warehouseId: { $in: allowedWarehouseIds } } : undefined);
   return {
     total: items.length,
     items
@@ -204,13 +230,17 @@ export const adjustInventoryService = async ({ productId, warehouseId, quantity,
   }
 };
 
-export const getInventoryByIdService = async (inventoryId) => {
+export const getInventoryByIdService = async (inventoryId, user = {}) => {
   const inventory = await findInventoryById(inventoryId);
   if (!inventory) {
     const error = new Error("Inventory record not found");
     error.statusCode = 404;
     error.code = "INVENTORY_NOT_FOUND";
     throw error;
+  }
+
+  if (user.role === "Warehouse Staff") {
+    assertWarehouseAccess(user, inventory.warehouseId?._id || inventory.warehouseId);
   }
 
   return inventory;

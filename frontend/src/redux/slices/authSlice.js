@@ -15,13 +15,13 @@ export const loginUser=createAsyncThunk(
 
 export const registerUser = createAsyncThunk(
   "auth/registerUser",
-  async ( { name, email, password, role, warehouseIds }, { rejectWithValue }) => {
+  async ({ name, email, password }, { rejectWithValue }) => {
     try {
-      const response = await api.post("/auth/register",  { name,
+      const response = await api.post("/auth/register", {
+        name,
         email,
         password,
-        role,
-        warehouseIds});
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || "Registration failed");
