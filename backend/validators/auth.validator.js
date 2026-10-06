@@ -1,5 +1,7 @@
+import { ROLES } from "../constants/roles.js";
+
 export const validateRegister=(data)=>{
-    const {name,email,password}=data;
+    const {name,email,password,role}=data;
     if(!name){
         return "Name is required"
     }
@@ -10,7 +12,10 @@ export const validateRegister=(data)=>{
         return "Password is required"
     }
 
-   
+    if(role && !Object.values(ROLES).includes(role.trim())){
+        return "Invalid user role";
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if(!emailRegex.test(email)){

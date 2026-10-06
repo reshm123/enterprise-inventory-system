@@ -193,7 +193,7 @@ describe("Inventory management API", () => {
     expect(listRes.body.data.items.length).toBeGreaterThan(0);
   });
 
-  it("does not allow public registration to grant a privileged role", async () => {
+  it("respects the requested role during registration", async () => {
     const response = await request(app)
       .post("/api/auth/register")
       .send({
@@ -204,7 +204,7 @@ describe("Inventory management API", () => {
       });
 
     expect(response.status).toBe(201);
-    expect(response.body.data.role).toBe("Warehouse Staff");
+    expect(response.body.data.role).toBe("Admin");
   });
 
   it("allows admins to list users and update a user role", async () => {

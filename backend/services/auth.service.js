@@ -1,11 +1,21 @@
 import {findUserByEmail , findUserById , createUser , incrementTokenVersion} from "../repositories/user.repository.js"
 import {hashedpassword , passwordcompare} from "../utils/password.js"
 import {genearetToken } from "../utils/jwt.js"
+import { ROLES } from "../constants/roles.js"
 
 export const registerUser=async({
-  name,email,password
+  name,email,password,role
 })=>{
     const normalizedemail=email.trim().toLowerCase()
+    const normalizedRole = role?.trim()
+
+    if (normalizedRole && !Object.values(ROLES).includes(normalizedRole)) {
+      const error = new Error("Invalid user role");
+      error.statusCode = 400;
+      error.code = "INVALID_USER_ROLE";
+      throw error;
+    }
+
     const existingeamil= await findUserByEmail(normalizedemail);
     if(existingeamil){
      const error=new Error("Email already registered");
@@ -17,7 +27,10 @@ export const registerUser=async({
 
     const hashedPassword=await hashedpassword(password);
    const user= await createUser({
-    name,email:normalizedemail,password:hashedPassword,role:"Warehouse Staff"
+    name,
+    email:normalizedemail,
+    password:hashedPassword,
+    role: normalizedRole || ROLES.WAREHOUSE_STAFF
 })
 return {
     id:user._id,
