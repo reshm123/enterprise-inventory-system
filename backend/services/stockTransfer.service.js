@@ -166,9 +166,14 @@ export const approveStockTransferService = async (id, user) => {
       if (transfer.status !== "Requested") fail("Only requested transfers can be approved", 409, "INVALID_TRANSFER_STATE");
       for (const item of transfer.items) {
         const updated = await Inventory.findOneAndUpdate(
-          { productId: item.productId, warehouseId: transfer.fromWarehouse, availableQuantity: { $gte: item.quantity } },
+          {
+            productId: item.productId,
+            warehouseId: transfer.fromWarehouse,
+            quantity: { $gte: item.quantity },
+            availableQuantity: { $gte: item.quantity }
+          },
           { $inc: { reservedQuantity: item.quantity, availableQuantity: -item.quantity, version: 1 } },
-          { new: true, session }
+          { new: true, runValidators: true, session }
         );
         if (!updated) fail(`Insufficient stock for product ${item.productId}`, 400, "INSUFFICIENT_STOCK");
       }
@@ -196,7 +201,7 @@ export const shipStockTransferService = async (id, user) => {
         const updated = await Inventory.findOneAndUpdate(
           { productId: item.productId, warehouseId: transfer.fromWarehouse, reservedQuantity: { $gte: item.quantity }, quantity: { $gte: item.quantity } },
           { $inc: { quantity: -item.quantity, reservedQuantity: -item.quantity, version: 1 } },
-          { new: true, session }
+          { new: true, runValidators: true, session }
         );
         if (!updated) fail(`Unable to ship stock for product ${item.productId}`, 409, "INSUFFICIENT_STOCK");
       }
@@ -250,7 +255,16 @@ export const cancelStockTransferService = async (id, user) => {
       if (!["Draft", "Requested", "Approved"].includes(transfer.status)) fail("Transfer cannot be cancelled in its current state", 409, "INVALID_TRANSFER_STATE");
       if (transfer.status === "Approved") {
         for (const item of transfer.items) {
-          await Inventory.findOneAndUpdate({ productId: item.productId, warehouseId: transfer.fromWarehouse }, { $inc: { reservedQuantity: -item.quantity, availableQuantity: item.quantity, version: 1 } }, { session });
+          const updated = await Inventory.findOneAndUpdate(
+            {
+              productId: item.productId,
+              warehouseId: transfer.fromWarehouse,
+              reservedQuantity: { $gte: item.quantity }
+            },
+            { $inc: { reservedQuantity: -item.quantity, availableQuantity: item.quantity, version: 1 } },
+            { new: true, runValidators: true, session }
+          );
+          if (!updated) fail(`Insufficient stock for product ${item.productId}`, 400, "INSUFFICIENT_STOCK");
         }
       }
       transfer.status = "Cancelled";

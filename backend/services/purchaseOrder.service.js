@@ -198,7 +198,7 @@ export const receivePurchaseOrderService = async (id, receiptItems, user) => {
             $inc: { quantity, availableQuantity: quantity },
             $setOnInsert: { reservedQuantity: 0, reorderLevel: product.reorderLevel }
           },
-          { upsert: true, new: true, session: activeSession, setDefaultsOnInsert: true }
+          { upsert: true, new: true, runValidators: true, session: activeSession, setDefaultsOnInsert: true }
         );
         movements.push({
           productId: receipt.productId,

@@ -14,7 +14,7 @@ import StockTransfer from "../models/stockTransfer.model.js";
 import Supplier from "../models/Supplier.js";
 import Warehouse from "../models/warehouse.js";
 import { receivePurchaseOrderService } from "../services/purchaseOrder.service.js";
-import { approveStockTransferService } from "../services/stockTransfer.service.js";
+import { approveStockTransferService, cancelStockTransferService } from "../services/stockTransfer.service.js";
 import { authorizeRoles } from "../middleware/role.middleware.js";
 
 let mongoServer;
@@ -446,6 +446,30 @@ describe("Inventory management API", () => {
 
     expect(submitResponse.status).toBe(200);
     expect(submitResponse.body.data.status).toBe("Pending Approval");
+  });
+
+  it("rejects cancelling an approved transfer when reserved stock is insufficient", async () => {
+    const sourceInventory = await Inventory.findOne({ productId, warehouseId });
+    const destination = await Warehouse.create({ name: "Warehouse C", code: "WH-C-01", location: "Pune" });
+    const transfer = await StockTransfer.create({
+      transferNumber: "TR-NEGATIVE-1",
+      fromWarehouse: warehouseId,
+      toWarehouse: destination._id,
+      items: [{ productId, quantity: 8 }],
+      status: "Approved",
+      requestedBy: userId,
+      approvedBy: userId
+    });
+
+    await Inventory.findOneAndUpdate(
+      { _id: sourceInventory._id },
+      { $set: { reservedQuantity: 3, availableQuantity: sourceInventory.availableQuantity - 3 } }
+    );
+
+    await expect(cancelStockTransferService(transfer._id.toString(), { id: userId })).rejects.toMatchObject({ code: "INSUFFICIENT_STOCK" });
+
+    const updatedInventory = await Inventory.findById(sourceInventory._id);
+    expect(updatedInventory.reservedQuantity).toBe(3);
   });
 
   it("prevents concurrent transfers from reserving more stock than available", async () => {
