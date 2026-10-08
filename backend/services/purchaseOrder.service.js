@@ -11,6 +11,7 @@ import {
   findPurchaseOrderById,
   findPurchaseOrders
 } from "../repositories/purchaseOrder.repository.js";
+import { runMongoTransaction } from "../utils/transaction.js";
 
 const fail = (message, statusCode = 400, code = "VALIDATION_ERROR") => {
   const error = new Error(message);
@@ -233,13 +234,7 @@ export const receivePurchaseOrderService = async (id, receiptItems, user) => {
       result = purchaseOrder;
     };
 
-    const hello = await mongoose.connection.db.admin().command({ hello: 1 });
-    const supportsTransactions = Boolean(hello.setName || hello.msg === "isdbgrid");
-    if (!supportsTransactions) {
-      await receive(session);
-      return result;
-    }
-    await session.withTransaction(() => receive(session));
+    await runMongoTransaction(session, () => receive(session));
     return result;
   } finally {
     await session.endSession();

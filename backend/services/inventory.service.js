@@ -12,21 +12,9 @@ import {
 } from "../repositories/inventory.repository.js";
 import AuditLog from "../models/auditLog.model.js";
 import Inventory from "../models/inventory.model.js";
+import { runMongoTransaction } from "../utils/transaction.js";
 
-const supportsTransactions = async () => {
-  if (!mongoose.connection.db) return false;
-  try {
-    const hello = await mongoose.connection.db.admin().command({ hello: 1 });
-    return Boolean(hello.setName || hello.msg === "isdbgrid");
-  } catch {
-    return false;
-  }
-};
-
-const runInTransaction = async (session, operation) => {
-  if (!(await supportsTransactions())) return operation();
-  return session.withTransaction(operation);
-};
+const runInTransaction = async (session, operation) => runMongoTransaction(session, operation);
 
 export const createInventoryService = async ({ productId, warehouseId, quantity = 0, reorderLevel = 0 }, user) => {
   if (!productId || !warehouseId) {

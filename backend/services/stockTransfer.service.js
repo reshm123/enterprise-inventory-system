@@ -5,6 +5,7 @@ import Inventory from "../models/inventory.model.js";
 import StockMovement from "../models/stockMovement.model.js";
 import StockTransfer from "../models/stockTransfer.model.js";
 import AuditLog from "../models/auditLog.model.js";
+import { runMongoTransaction } from "../utils/transaction.js";
 
 const fail = (message, statusCode = 400, code = "VALIDATION_ERROR") => {
   const error = new Error(message);
@@ -17,20 +18,7 @@ const assertId = (value, field) => {
   if (!mongoose.isValidObjectId(value)) fail(`${field} is invalid`);
 };
 
-const supportsTransactions = async () => {
-  if (!mongoose.connection.db) return false;
-  try {
-    const hello = await mongoose.connection.db.admin().command({ hello: 1 });
-    return Boolean(hello.setName || hello.msg === "isdbgrid");
-  } catch {
-    return false;
-  }
-};
-
-const runWithTransaction = async (session, operation) => {
-  if (!(await supportsTransactions())) return operation();
-  return session.withTransaction(operation);
-};
+const runWithTransaction = async (session, operation) => runMongoTransaction(session, operation);
 
 const getTransfer = async (id, session) => {
   assertId(id, "Transfer");
