@@ -9,6 +9,7 @@ import User from "../models/user.model.js";
 import StockMovement from "../models/stockMovement.model.js";
 import AuditLog from "../models/auditLog.model.js";
 import Inventory from "../models/inventory.model.js";
+import Product from "../models/product.model.js";
 import PurchaseOrder from "../models/purchaseOrder.model.js";
 import StockTransfer from "../models/stockTransfer.model.js";
 import Supplier from "../models/Supplier.js";
@@ -165,6 +166,39 @@ describe("Inventory management API", () => {
     );
   });
 
+  it("searches, sorts, and paginates stock transfers in the API", async () => {
+    await StockTransfer.create([
+      {
+        transferNumber: "TR-PERF-001",
+        fromWarehouse: warehouseId,
+        toWarehouse: warehouseId,
+        items: [{ productId, quantity: 1 }],
+        requestedBy: userId
+      },
+      {
+        transferNumber: "TR-PERF-002",
+        fromWarehouse: warehouseId,
+        toWarehouse: warehouseId,
+        items: [{ productId, quantity: 1 }],
+        requestedBy: userId
+      }
+    ]);
+
+    const response = await request(app)
+      .get("/api/stock-transfers")
+      .set("Authorization", authToken)
+      .query({ search: "tr-perf-", sortBy: "transferNumber", sortOrder: "asc", page: 2, limit: 1 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data).toMatchObject({
+      total: 2,
+      page: 2,
+      limit: 1,
+      totalPages: 2
+    });
+    expect(response.body.data.items.map((transfer) => transfer.transferNumber)).toEqual(["TR-PERF-002"]);
+  });
+
   it("creates stock and lists inventory for a warehouse", async () => {
     const createRes = await request(app)
       .post("/api/inventory")
@@ -191,6 +225,30 @@ describe("Inventory management API", () => {
     expect(listRes.status).toBe(200);
     expect(listRes.body.success).toBe(true);
     expect(listRes.body.data.items.length).toBeGreaterThan(0);
+  });
+
+  it("applies inventory product search and category together", async () => {
+    const otherProduct = await Product.create({
+      sku: "PAPER-CLIPS",
+      name: "Paper Clips",
+      category: "Office",
+      unitPrice: 1,
+      reorderLevel: 0
+    });
+    await Inventory.create({
+      productId: otherProduct._id,
+      warehouseId,
+      quantity: 5,
+      availableQuantity: 5
+    });
+
+    const response = await request(app)
+      .get("/api/inventory")
+      .set("Authorization", authToken)
+      .query({ search: "laptop", category: "Office" });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.items).toHaveLength(0);
   });
 
   it("respects the requested role during registration", async () => {

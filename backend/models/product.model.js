@@ -54,8 +54,10 @@ const productschema = new mongoose.Schema(
     timestamps: true
   }
 );
-productschema.index({name:1});
-productschema.index({category:1});
+productschema.index({ name: 1 });
+productschema.index({ category: 1 });
+productschema.index({ category: 1, createdAt: -1 });
+productschema.index({ status: 1, createdAt: -1 });
 
 
 

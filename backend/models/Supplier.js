@@ -49,6 +49,8 @@ const supplierSchema = new mongoose.Schema({
         timestamps:true
     });
 
+supplierSchema.index({ status: 1, createdAt: -1 });
+
 const Supplier = mongoose.model("Supplier", supplierSchema);
 
 export default Supplier;

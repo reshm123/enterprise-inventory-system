@@ -61,5 +61,9 @@ const stockTransferSchema = new mongoose.Schema(
 
 stockTransferSchema.index({ fromWarehouse: 1, status: 1 });
 stockTransferSchema.index({ toWarehouse: 1, status: 1 });
+stockTransferSchema.index({ createdAt: -1, _id: -1 });
+stockTransferSchema.index({ status: 1, createdAt: -1, _id: -1 });
+stockTransferSchema.index({ fromWarehouse: 1, createdAt: -1, _id: -1 });
+stockTransferSchema.index({ toWarehouse: 1, createdAt: -1, _id: -1 });
 
 export default mongoose.model("StockTransfer", stockTransferSchema);

@@ -46,6 +46,7 @@ const warehouseSchema = new mongoose.Schema(
 
 warehouseSchema.index({ name: 1 });
 warehouseSchema.index({ status: 1 });
+warehouseSchema.index({ status: 1, createdAt: -1 });
 
 const Warehouse = mongoose.model("Warehouse", warehouseSchema);
 

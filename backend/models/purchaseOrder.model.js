@@ -100,9 +100,9 @@ const purchaseOrderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-purchaseOrderSchema.index({ supplierId: 1 });
-purchaseOrderSchema.index({ warehouseId: 1 });
-purchaseOrderSchema.index({ status: 1 });
+purchaseOrderSchema.index({ supplierId: 1, createdAt: -1 });
+purchaseOrderSchema.index({ warehouseId: 1, createdAt: -1 });
+purchaseOrderSchema.index({ status: 1, createdAt: -1 });
 purchaseOrderSchema.index({ createdAt: -1 });
 
 const PurchaseOrder = mongoose.model("PurchaseOrder", purchaseOrderSchema);

@@ -23,7 +23,10 @@ const Transfers = () => {
   const canApprove = approverRoles.includes(user?.role);
 
   const [transfers, setTransfers] = useState([]);
-  const [filters, setFilters] = useState({ status: "", fromWarehouse: "", toWarehouse: "" });
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({ search: "", status: "", fromWarehouse: "", toWarehouse: "", sortBy: "createdAt", sortOrder: "desc" });
   const [appliedFilters, setAppliedFilters] = useState(filters);
   const [form, setForm] = useState(createEmptyForm);
   const [showForm, setShowForm] = useState(false);
@@ -44,11 +47,14 @@ const Transfers = () => {
       setLoading(true);
       setError("");
       try {
-        const params = Object.fromEntries(
-          Object.entries(appliedFilters).filter(([, value]) => value)
-        );
+        const params = Object.fromEntries(Object.entries({ ...appliedFilters, page, limit: 20 }).filter(([, value]) => value));
         const response = await api.get("/stock-transfers", { params });
-        if (active) setTransfers(response.data?.data ?? []);
+        if (active) {
+          const result = response.data?.data ?? {};
+          setTransfers(result.items ?? []);
+          setTotal(result.total ?? 0);
+          setTotalPages(result.totalPages ?? 0);
+        }
       } catch (requestError) {
         if (active) {
           setError(requestError.response?.data?.message || "Unable to load stock transfers.");
@@ -59,7 +65,7 @@ const Transfers = () => {
     };
     loadTransfers();
     return () => { active = false; };
-  }, [appliedFilters, refreshKey]);
+  }, [appliedFilters, page, refreshKey]);
 
   const activeWarehouses = warehouses.filter((warehouse) => warehouse.status === "ACTIVE");
   const warehouseName = (id) => warehouses.find((warehouse) => warehouse._id === id)?.name || "Unknown warehouse";
@@ -230,9 +236,13 @@ const Transfers = () => {
       <section className="card">
         <div className="table-header">
           <h2>Transfer queue</h2>
-          <span>Total: {transfers.length}</span>
+          <span>Total: {total}</span>
         </div>
-        <form className="filter-grid transfer-filters" onSubmit={(event) => { event.preventDefault(); setAppliedFilters(filters); }}>
+        <form className="filter-grid transfer-filters" onSubmit={(event) => { event.preventDefault(); setPage(1); setAppliedFilters(filters); }}>
+          <div className="form-group">
+            <label htmlFor="transfer-search">Transfer number</label>
+            <input id="transfer-search" name="search" type="search" value={filters.search} onChange={handleFilterChange} placeholder="Search by number" />
+          </div>
           <div className="form-group">
             <label htmlFor="transfer-status-filter">Status</label>
             <select id="transfer-status-filter" name="status" value={filters.status} onChange={handleFilterChange}>
@@ -254,9 +264,24 @@ const Transfers = () => {
               {warehouses.map((warehouse) => <option key={warehouse._id} value={warehouse._id}>{warehouse.name}</option>)}
             </select>
           </div>
+          <div className="form-group">
+            <label htmlFor="transfer-sort">Sort by</label>
+            <select id="transfer-sort" name="sortBy" value={filters.sortBy} onChange={handleFilterChange}>
+              <option value="createdAt">Created date</option>
+              <option value="transferNumber">Transfer number</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="transfer-sort-order">Order</label>
+            <select id="transfer-sort-order" name="sortOrder" value={filters.sortOrder} onChange={handleFilterChange}>
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
+          </div>
           <div className="button-row">
             <button className="btn btn-primary" type="submit">Apply filters</button>
-            <button className="btn btn-secondary" type="button" onClick={() => { const empty = { status: "", fromWarehouse: "", toWarehouse: "" }; setFilters(empty); setAppliedFilters(empty); }}>Reset</button>
+            <button className="btn btn-secondary" type="button" onClick={() => { const empty = { search: "", status: "", fromWarehouse: "", toWarehouse: "", sortBy: "createdAt", sortOrder: "desc" }; setFilters(empty); setAppliedFilters(empty); setPage(1); }}>Reset</button>
           </div>
         </form>
 
@@ -277,6 +302,13 @@ const Transfers = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {totalPages > 1 && (
+          <div className="pagination">
+            <button className="btn btn-secondary btn-sm" type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page <= 1}>Previous</button>
+            <span>Page {page} of {totalPages}</span>
+            <button className="btn btn-secondary btn-sm" type="button" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={page >= totalPages}>Next</button>
           </div>
         )}
       </section>

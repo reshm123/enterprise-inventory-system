@@ -45,6 +45,8 @@ const inventorySchema = new mongoose.Schema(
 inventorySchema.index({ productId: 1, warehouseId: 1 }, { unique: true });
 inventorySchema.index({ warehouseId: 1, availableQuantity: 1 });
 inventorySchema.index({ availableQuantity: 1, reorderLevel: 1 });
+inventorySchema.index({ warehouseId: 1, updatedAt: -1 });
+inventorySchema.index({ updatedAt: -1 });
 
 const Inventory = mongoose.model("Inventory", inventorySchema);
 

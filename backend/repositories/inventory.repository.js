@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import Product from "../models/product.model.js";
 import Inventory from "../models/inventory.model.js";
 import StockMovement from "../models/stockMovement.model.js";
 
@@ -25,20 +26,19 @@ export const listInventoryRecords = async ({ search, warehouse, category, lowSto
     query.warehouseId = warehouse;
   }
 
+  const productFilter = {};
   if (search) {
-    const productSearch = await mongoose.model("Product").find({
-      $or: [
+    productFilter.$or = [
         { name: { $regex: search, $options: "i" } },
         { sku: { $regex: search, $options: "i" } }
-      ]
-    }).select("_id");
-
-    query.productId = { $in: productSearch.map((product) => product._id) };
+    ];
   }
 
-  if (category) {
-    const categoryProducts = await mongoose.model("Product").find({ category }).select("_id");
-    query.productId = { $in: categoryProducts.map((product) => product._id) };
+  if (category) productFilter.category = category;
+
+  if (search || category) {
+    const matchingProducts = await Product.find(productFilter).select("_id").lean();
+    query.productId = { $in: matchingProducts.map((product) => product._id) };
   }
 
   if (lowStock && outOfStock) {

@@ -98,16 +98,39 @@ export const listStockTransfersService = async (query = {}, user = {}) => {
   if (query.fromWarehouse) filter.fromWarehouse = query.fromWarehouse;
   if (query.toWarehouse) filter.toWarehouse = query.toWarehouse;
 
+  const search = query.search?.trim().toUpperCase();
+  if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    filter.transferNumber = { $regex: `^${escapedSearch}` };
+  }
+
+  const page = Math.max(Number.parseInt(query.page, 10) || 1, 1);
+  const limit = Math.min(Math.max(Number.parseInt(query.limit, 10) || 20, 1), 100);
+  const sortFields = { createdAt: "createdAt", transferNumber: "transferNumber", status: "status" };
+  const sortField = sortFields[query.sortBy] || "createdAt";
+  const sortDirection = query.sortOrder === "asc" ? 1 : -1;
+  const skip = (page - 1) * limit;
+
   if (user.role === "Warehouse Staff") {
     const allowedWarehouseIds = (user.warehouseIds || []).map((id) => id.toString());
-    if (!allowedWarehouseIds.length) return [];
+    if (!allowedWarehouseIds.length) {
+      return { items: [], total: 0, page, limit, totalPages: 0 };
+    }
     filter.$or = [
       { fromWarehouse: { $in: allowedWarehouseIds } },
       { toWarehouse: { $in: allowedWarehouseIds } }
     ];
   }
 
-  return StockTransfer.find(filter).sort({ createdAt: -1 });
+  const [items, total] = await Promise.all([
+    StockTransfer.find(filter)
+      .sort({ [sortField]: sortDirection, _id: sortDirection })
+      .skip(skip)
+      .limit(limit),
+    StockTransfer.countDocuments(filter)
+  ]);
+
+  return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
 };
 
 export const getStockTransferService = async (id, user = {}) => {
