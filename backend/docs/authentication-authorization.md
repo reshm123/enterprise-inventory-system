@@ -118,7 +118,7 @@ Possible Errors:
 
 401 - INVALID_CREDENTIALS
 
-403 - ACCOUNT_NOT_ACTIVE
+409 - ACCOUNT_NOT_ACTIVE
 
 3. Get Current User
 
@@ -217,6 +217,18 @@ The previous JWT contains the old tokenVersion.
 The old JWT is therefore invalidated.
 
 The client should remove the JWT after logout.
+
+## Automated workflow coverage
+
+The API test suite verifies registration, case-insensitive login, current-user lookup, invalid credentials, missing and invalid tokens, inactive-account rejection, and token invalidation after logout. Run the focused authentication tests from the repository root:
+
+```powershell
+Push-Location backend
+npm test -- --runTestsByPath tests/inventory.test.js -t "registers, logs in, fetches the current user|rejects login and protected requests for inactive accounts"
+Pop-Location
+```
+
+For the expected status and error code of each auth failure, plus purchase-order and transfer role checks, see the [workflow testing guide](workflow-testing.md#expected-failure-contracts).
 
 The user must log in again to receive a new token.
 

@@ -17,6 +17,18 @@ The backend has core business logic implemented and verified for the main flows:
 
 This repository is intended for a local development environment and can be extended for production deployment.
 
+## Testing
+
+Run the backend API and workflow tests from PowerShell:
+
+```powershell
+Push-Location backend
+npm test
+Pop-Location
+```
+
+The suite uses Jest, Supertest, and an in-memory MongoDB instance. See the [workflow testing guide](backend/docs/workflow-testing.md) for focused commands and coverage of authentication, purchase-order approval and receiving, and stock transfers.
+
 ## Tech stack
 
 Backend:

@@ -104,6 +104,7 @@ Create-transfer request:
   "transferNumber": "TR-1001",
   "fromWarehouse": "SOURCE_WAREHOUSE_ID",
   "toWarehouse": "DESTINATION_WAREHOUSE_ID",
+
   "items": [
     {
       "productId": "PRODUCT_ID",
@@ -187,3 +188,17 @@ When MongoDB runs as a replica set, approval, transfer state changes, and relate
 | Controller | [stockTransfer.controller.js](../controllers/stockTransfer.controller.js) |
 | Routes | [stockTransfer.routes.js](../routes/stockTransfer.routes.js) |
 | App registration | [app.js](../app.js) |
+
+## 9. Workflow API Test
+
+The Supertest workflow test drives a transfer through `Draft -> Requested -> Approved -> In Transit -> Received`. It verifies that approval reserves available stock, shipping reduces source physical quantity, receipt adds stock at the destination, and outbound/inbound movement records are written. Separate service-level tests cover insufficient stock and concurrent approvals.
+
+Run the API workflow test from the repository root:
+
+```powershell
+Push-Location backend
+npm test -- --runTestsByPath tests/inventory.test.js -t "completes a stock transfer through request"
+Pop-Location
+```
+
+For the complete workflow test matrix and manual smoke checks, see the [workflow testing guide](workflow-testing.md).

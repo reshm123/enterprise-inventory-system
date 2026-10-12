@@ -96,6 +96,33 @@ describe("Role and access validation", () => {
     expect(res.status).toHaveBeenCalledWith(401);
     expect(next).not.toHaveBeenCalled();
   });
+
+  it("accepts role arrays and blocks suspended users from protected APIs", () => {
+    const suspendedReq = {
+      user: {
+        role: "Warehouse Staff",
+        status: "Suspended"
+      }
+    };
+    const allowedReq = {
+      user: {
+        role: "Warehouse Staff",
+        status: "Active"
+      }
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
+    const next = jest.fn();
+
+    expect(() => authorizeRoles(["Admin", "Warehouse Staff"])(suspendedReq, res, next)).not.toThrow();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+
+    expect(() => authorizeRoles(["Admin", "Warehouse Staff"])(allowedReq, res, next)).not.toThrow();
+    expect(next).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("Inventory management API", () => {
@@ -109,6 +136,80 @@ describe("Inventory management API", () => {
     expect(response.status).toBe(204);
     expect(response.headers["access-control-allow-origin"]).toBe("http://localhost:5173");
     expect(response.headers["access-control-allow-methods"]).toContain("POST");
+  });
+
+  it("registers, logs in, fetches the current user, and invalidates the token on logout", async () => {
+    const email = `auth-workflow-${new mongoose.Types.ObjectId()}@inventory.test`;
+    const registrationResponse = await request(app)
+      .post("/api/auth/register")
+      .send({ name: "Auth Workflow User", email, password: "Password123!", role: "Warehouse Staff" });
+
+    expect(registrationResponse.status).toBe(201);
+    expect(registrationResponse.body.data.role).toBe("Warehouse Staff");
+
+    const loginResponse = await request(app)
+      .post("/api/auth/login")
+      .send({ email: email.toUpperCase(), password: "Password123!" });
+
+    expect(loginResponse.status).toBe(200);
+    expect(loginResponse.body.data.token).toBeTruthy();
+    const sessionToken = `Bearer ${loginResponse.body.data.token}`;
+
+    const missingTokenResponse = await request(app).get("/api/auth/me");
+    expect(missingTokenResponse.status).toBe(401);
+    expect(missingTokenResponse.body.error.code).toBe("MISSING_TOKEN");
+
+    const invalidTokenResponse = await request(app)
+      .get("/api/auth/me")
+      .set("Authorization", "Bearer invalid.token.here");
+    expect(invalidTokenResponse.status).toBe(401);
+    expect(invalidTokenResponse.body.error.code).toBe("INVALID_TOKEN");
+
+    const currentUserResponse = await request(app)
+      .get("/api/auth/me")
+      .set("Authorization", sessionToken);
+    expect(currentUserResponse.status).toBe(200);
+    expect(currentUserResponse.body.data.email).toBe(email);
+
+    const logoutResponse = await request(app)
+      .post("/api/auth/logout")
+      .set("Authorization", sessionToken);
+    expect(logoutResponse.status).toBe(200);
+
+    const invalidatedTokenResponse = await request(app)
+      .get("/api/auth/me")
+      .set("Authorization", sessionToken);
+    expect(invalidatedTokenResponse.status).toBe(401);
+    expect(invalidatedTokenResponse.body.error.code).toBe("TOKEN_INVALIDATED");
+
+    const invalidCredentialsResponse = await request(app)
+      .post("/api/auth/login")
+      .send({ email, password: "WrongPassword123!" });
+    expect(invalidCredentialsResponse.status).toBe(401);
+    expect(invalidCredentialsResponse.body.error.code).toBe("INVALID_CREDENTIALS");
+  });
+
+  it("rejects login and protected requests for inactive accounts", async () => {
+    const suspendedUser = await User.create({
+      name: "Suspended User",
+      email: "suspended-auth@inventory.test",
+      password: "Password123!",
+      role: "Warehouse Staff",
+      status: "Suspended"
+    });
+    const suspendedToken = `Bearer ${jwtSign({ id: suspendedUser._id.toString(), role: suspendedUser.role, tokenVersion: suspendedUser.tokenVersion })}`;
+
+    const loginResponse = await request(app)
+      .post("/api/auth/login")
+      .send({ email: suspendedUser.email, password: "Password123!" });
+    expect(loginResponse.status).toBe(409);
+    expect(loginResponse.body.error.code).toBe("ACCOUNT_NOT_ACTIVE");
+
+    const currentUserResponse = await request(app)
+      .get("/api/auth/me")
+      .set("Authorization", suspendedToken);
+    expect(currentUserResponse.status).toBe(403);
+    expect(currentUserResponse.body.error.code).toBe("TOKEN_INVALIDATED");
   });
 
   it("lists audit history for authorized users with pagination metadata", async () => {
@@ -504,6 +605,182 @@ describe("Inventory management API", () => {
 
     expect(submitResponse.status).toBe(200);
     expect(submitResponse.body.data.status).toBe("Pending Approval");
+
+    const selfApprovalResponse = await request(app)
+      .post(`/api/purchase-orders/${po._id}/approve`)
+      .set("Authorization", authToken);
+    expect(selfApprovalResponse.status).toBe(403);
+    expect(selfApprovalResponse.body.error.code).toBe("SEPARATION_OF_DUTIES_REQUIRED");
+  });
+
+  it("approves and receives a purchase order through the API", async () => {
+    const supplier = await Supplier.create({
+      name: "PO API Workflow Supplier",
+      email: `po-workflow-${new mongoose.Types.ObjectId()}@inventory.test`,
+      phone: "+1 555 0177",
+      address: "3 Workflow Street",
+      contactPerson: "Workflow Contact"
+    });
+    const approver = await User.create({
+      name: "PO API Approver",
+      email: `po-approver-${new mongoose.Types.ObjectId()}@inventory.test`,
+      password: "Password123!",
+      role: "Procurement Manager",
+      status: "Active"
+    });
+    const approverToken = `Bearer ${jwtSign({ id: approver._id.toString(), role: approver.role, tokenVersion: approver.tokenVersion })}`;
+    let inventoryBefore = await Inventory.findOne({ productId, warehouseId });
+    if (!inventoryBefore) {
+      inventoryBefore = await Inventory.create({
+        productId,
+        warehouseId,
+        quantity: 0,
+        reservedQuantity: 0,
+        availableQuantity: 0,
+        reorderLevel: 0
+      });
+    }
+    const orderedQuantity = 5;
+
+    const createResponse = await request(app)
+      .post("/api/purchase-orders")
+      .set("Authorization", authToken)
+      .send({
+        poNumber: `PO-API-${new mongoose.Types.ObjectId()}`,
+        supplierId: supplier._id.toString(),
+        warehouseId,
+        items: [{ productId, quantity: orderedQuantity, unitPrice: 25 }]
+      });
+
+    expect(createResponse.status).toBe(201);
+    const purchaseOrderId = createResponse.body.data._id;
+    expect(createResponse.body.data.status).toBe("Draft");
+    expect(createResponse.body.data.totalAmount).toBe(orderedQuantity * 25);
+
+    const submitResponse = await request(app)
+      .post(`/api/purchase-orders/${purchaseOrderId}/submit`)
+      .set("Authorization", authToken);
+    expect(submitResponse.status).toBe(200);
+    expect(submitResponse.body.data.status).toBe("Pending Approval");
+
+    const approveResponse = await request(app)
+      .post(`/api/purchase-orders/${purchaseOrderId}/approve`)
+      .set("Authorization", approverToken)
+      .send({ comment: "API workflow approval" });
+    expect(approveResponse.status).toBe(200);
+    expect(approveResponse.body.data.status).toBe("Approved");
+    expect(approveResponse.body.data.approvedBy.toString()).toBe(approver._id.toString());
+
+    const auditor = await User.create({
+      name: "Receiving Auditor",
+      email: `receiving-auditor-${new mongoose.Types.ObjectId()}@inventory.test`,
+      password: "Password123!",
+      role: "Inventory Auditor",
+      status: "Active"
+    });
+    const auditorToken = `Bearer ${jwtSign({ id: auditor._id.toString(), role: auditor.role, tokenVersion: auditor.tokenVersion })}`;
+    const unauthorizedReceiptResponse = await request(app)
+      .post(`/api/purchase-orders/${purchaseOrderId}/receive`)
+      .set("Authorization", auditorToken)
+      .send({ items: [{ productId, quantity: 1 }] });
+    expect(unauthorizedReceiptResponse.status).toBe(403);
+    expect(unauthorizedReceiptResponse.body.error.code).toBe("FORBIDDEN");
+
+    const partialReceiptResponse = await request(app)
+      .post(`/api/purchase-orders/${purchaseOrderId}/receive`)
+      .set("Authorization", authToken)
+      .send({ items: [{ productId, quantity: 2 }] });
+    expect(partialReceiptResponse.status).toBe(200);
+    expect(partialReceiptResponse.body.data.status).toBe("Partially Received");
+
+    const inventoryAfterPartialReceipt = await Inventory.findOne({ productId, warehouseId });
+    const overReceiptResponse = await request(app)
+      .post(`/api/purchase-orders/${purchaseOrderId}/receive`)
+      .set("Authorization", authToken)
+      .send({ items: [{ productId, quantity: 4 }] });
+    expect(overReceiptResponse.status).toBe(400);
+    expect(overReceiptResponse.body.error.code).toBe("OVER_RECEIVING_NOT_ALLOWED");
+    expect((await Inventory.findOne({ productId, warehouseId })).quantity).toBe(inventoryAfterPartialReceipt.quantity);
+
+    const finalReceiptResponse = await request(app)
+      .post(`/api/purchase-orders/${purchaseOrderId}/receive`)
+      .set("Authorization", authToken)
+      .send({ items: [{ productId, quantity: 3 }] });
+    expect(finalReceiptResponse.status).toBe(200);
+    expect(finalReceiptResponse.body.data.status).toBe("Fully Received");
+    expect((await Inventory.findOne({ productId, warehouseId })).quantity).toBe(inventoryBefore.quantity + orderedQuantity);
+    expect(await StockMovement.countDocuments({ reference: createResponse.body.data.poNumber, type: "PURCHASE_RECEIPT" })).toBe(2);
+  });
+
+  it("completes a stock transfer through request, approval, shipping, and receipt APIs", async () => {
+    const destination = await Warehouse.create({
+      name: "Transfer API Destination",
+      code: `WH-${new mongoose.Types.ObjectId().toString().slice(-8)}`,
+      location: "Workflow City"
+    });
+    const sourceBefore = await Inventory.findOne({ productId, warehouseId });
+    const destinationBefore = await Inventory.findOne({ productId, warehouseId: destination._id });
+    const transferQuantity = 2;
+
+    const createResponse = await request(app)
+      .post("/api/stock-transfers")
+      .set("Authorization", authToken)
+      .send({
+        transferNumber: `TR-API-${new mongoose.Types.ObjectId()}`,
+        fromWarehouse: warehouseId,
+        toWarehouse: destination._id.toString(),
+        items: [{ productId, quantity: transferQuantity }]
+      });
+    expect(createResponse.status).toBe(201);
+    const transferId = createResponse.body.data._id;
+    expect(createResponse.body.data.status).toBe("Draft");
+
+    const requestResponse = await request(app)
+      .post(`/api/stock-transfers/${transferId}/request`)
+      .set("Authorization", authToken);
+    expect(requestResponse.status).toBe(200);
+    expect(requestResponse.body.data.status).toBe("Requested");
+
+    const procurementManager = await User.create({
+      name: "Transfer Approver",
+      email: `transfer-approver-${new mongoose.Types.ObjectId()}@inventory.test`,
+      password: "Password123!",
+      role: "Procurement Manager",
+      status: "Active"
+    });
+    const procurementToken = `Bearer ${jwtSign({ id: procurementManager._id.toString(), role: procurementManager.role, tokenVersion: procurementManager.tokenVersion })}`;
+    const unauthorizedApprovalResponse = await request(app)
+      .post(`/api/stock-transfers/${transferId}/approve`)
+      .set("Authorization", procurementToken);
+    expect(unauthorizedApprovalResponse.status).toBe(403);
+    expect(unauthorizedApprovalResponse.body.error.code).toBe("FORBIDDEN");
+
+    const approvalResponse = await request(app)
+      .post(`/api/stock-transfers/${transferId}/approve`)
+      .set("Authorization", authToken);
+    expect(approvalResponse.status).toBe(200);
+    expect(approvalResponse.body.data.status).toBe("Approved");
+    expect((await Inventory.findOne({ productId, warehouseId })).availableQuantity).toBe(sourceBefore.availableQuantity - transferQuantity);
+
+    const shipResponse = await request(app)
+      .post(`/api/stock-transfers/${transferId}/ship`)
+      .set("Authorization", authToken);
+    expect(shipResponse.status).toBe(200);
+    expect(shipResponse.body.data.status).toBe("In Transit");
+
+    const receiveResponse = await request(app)
+      .post(`/api/stock-transfers/${transferId}/receive`)
+      .set("Authorization", authToken);
+    expect(receiveResponse.status).toBe(200);
+    expect(receiveResponse.body.data.status).toBe("Received");
+
+    const sourceAfter = await Inventory.findOne({ productId, warehouseId });
+    const destinationAfter = await Inventory.findOne({ productId, warehouseId: destination._id });
+    expect(sourceAfter.quantity).toBe(sourceBefore.quantity - transferQuantity);
+    expect(sourceAfter.availableQuantity).toBe(sourceBefore.availableQuantity - transferQuantity);
+    expect(destinationAfter.quantity).toBe((destinationBefore?.quantity || 0) + transferQuantity);
+    expect(destinationAfter.availableQuantity).toBe((destinationBefore?.availableQuantity || 0) + transferQuantity);
+    expect(await StockMovement.countDocuments({ reference: createResponse.body.data.transferNumber, type: { $in: ["STOCK_TRANSFER_OUT", "STOCK_TRANSFER_IN"] } })).toBe(2);
   });
 
   it("rejects cancelling an approved transfer when reserved stock is insufficient", async () => {

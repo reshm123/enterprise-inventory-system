@@ -535,6 +535,20 @@ The service also writes a stock movement:
 }
 ```
 
+### Workflow API test
+
+The Supertest workflow test creates a draft order, submits it, approves it with a different Procurement Manager, and receives it in multiple deliveries. It verifies the `Draft -> Pending Approval -> Approved -> Partially Received -> Fully Received` transitions, the final inventory quantity, and purchase-receipt stock movements. An over-receipt request is also sent through the API and must return `400` with `OVER_RECEIVING_NOT_ALLOWED` without changing inventory.
+
+Run this test from the repository root:
+
+```powershell
+Push-Location backend
+npm test -- --runTestsByPath tests/inventory.test.js -t "approves and receives a purchase order"
+Pop-Location
+```
+
+For all workflow tests and manual API steps, see the [workflow testing guide](workflow-testing.md).
+
 ---
 
 ## 8. Controller Layer
